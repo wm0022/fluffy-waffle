@@ -151,9 +151,9 @@
       </div>
     </el-card>
 
-    <el-card v-if="memberInfo.level > 0" class="member-info-card">
+    <el-card class="member-info-card">
       <div slot="header">
-        <span>会员信息</span>
+        <span>我的会员信息</span>
       </div>
       <div class="member-info">
         <el-row :gutter="20">
@@ -185,14 +185,17 @@
       </el-table>
     </el-card>
 
-    <el-card v-if="memberInfo.level > 0 && memberInfo.level < 4" class="next-level-card">
+    <el-card class="next-level-card">
       <div slot="header">
         <span>升级进度</span>
       </div>
       <div class="progress-info">
-        <p>
+        <p v-if="memberInfo.level < 4">
           距离下一等级 <strong>{{ nextLevelName }}</strong> 还需消费：
           <span class="highlight">¥{{ nextLevelAmount }}</span>
+        </p>
+        <p v-else>
+          恭喜！您已是最高等级会员！
         </p>
         <el-progress :percentage="progressPercentage" :color="progressColor" :stroke-width="20" />
       </div>
@@ -245,15 +248,17 @@ export default {
       return names[this.memberInfo.level + 1] || '钻石卡会员'
     },
     nextLevelAmount() {
-      const currentAmount = parseFloat(this.memberInfo.totalAmount)
+      if (this.memberInfo.level >= 4) return '0.00'
+      const currentAmount = parseFloat(this.memberInfo.totalAmount) || 0
       const nextThreshold = this.levelThresholds[this.memberInfo.level + 1] || 2888
-      return (nextThreshold - currentAmount).toFixed(2)
+      return Math.max(nextThreshold - currentAmount, 0).toFixed(2)
     },
     progressPercentage() {
       const currentAmount = parseFloat(this.memberInfo.totalAmount)
       if (this.memberInfo.level >= 4) return 100
-      const currentThreshold = this.levelThresholds[this.memberInfo.level]
-      const nextThreshold = this.levelThresholds[this.memberInfo.level + 1]
+      const currentThreshold = this.levelThresholds[this.memberInfo.level] || 0
+      const nextThreshold = this.levelThresholds[this.memberInfo.level + 1] || 2888
+      if (nextThreshold <= currentThreshold) return 100
       const progress = ((currentAmount - currentThreshold) / (nextThreshold - currentThreshold)) * 100
       return Math.min(Math.max(progress, 0), 100)
     },
@@ -361,19 +366,19 @@ export default {
 
     .member-info {
       .info-item {
-        margin-bottom: 10px;
-        font-size: 14px;
+        margin-bottom: 15px;
+        font-size: 16px;
 
-        .label { color: #909399; }
+        .label { color: #606266; font-weight: bold; }
         .value {
           color: #303133;
           &.level-1 { color: #409eff; font-weight: bold; }
           &.level-2 { color: #e6a23c; font-weight: bold; }
           &.level-3 { color: #f56c6c; font-weight: bold; }
           &.level-4 { color: #9c27b0; font-weight: bold; }
-          &.points { color: #e6a23c; font-size: 18px; font-weight: bold; }
-          &.amount { color: #f56c6c; font-size: 18px; font-weight: bold; }
-          &.discount { color: #67c23a; font-size: 18px; font-weight: bold; }
+          &.points { color: #e6a23c; font-size: 20px; font-weight: bold; }
+          &.amount { color: #f56c6c; font-size: 20px; font-weight: bold; }
+          &.discount { color: #67c23a; font-size: 20px; font-weight: bold; }
         }
       }
     }
