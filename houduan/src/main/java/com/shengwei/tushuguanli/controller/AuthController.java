@@ -2,10 +2,13 @@ package com.shengwei.tushuguanli.controller;
 
 import com.shengwei.tushuguanli.common.Result;
 import com.shengwei.tushuguanli.entity.SysUser;
+import com.shengwei.tushuguanli.service.PermissionService;
 import com.shengwei.tushuguanli.service.UserService;
 import com.shengwei.tushuguanli.util.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -27,6 +30,9 @@ public class AuthController {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private PermissionService permissionService;
+
     /**
      * 用户登录
      */
@@ -37,10 +43,14 @@ public class AuthController {
         
         String token = userService.login(username, password);
         SysUser user = userService.getByUsername(username);
+        if (user != null) {
+            user.setPassword(null);
+        }
 
         Map<String, Object> result = new HashMap<>();
         result.put("token", token);
         result.put("userInfo", user);
+        result.put("permissions", permissionService.getAdminMenuPaths(user != null ? user.getId() : null));
 
         return Result.success("登录成功", result);
     }
@@ -72,8 +82,19 @@ public class AuthController {
      * 获取当前用户信息
      */
     @GetMapping("/info")
-    public Result<SysUser> getCurrentUser() {
-        return Result.error("未实现");
+    public Result<Map<String, Object>> getCurrentUser() {
+        Long userId = getCurrentUserId();
+        if (userId == null) {
+            return Result.unauthorized("未登录或登录已过期");
+        }
+        SysUser user = userService.getById(userId);
+        if (user != null) {
+            user.setPassword(null);
+        }
+        Map<String, Object> result = new HashMap<>();
+        result.put("userInfo", user);
+        result.put("permissions", permissionService.getAdminMenuPaths(userId));
+        return Result.success(result);
     }
 
     /**
@@ -81,9 +102,12 @@ public class AuthController {
      */
     @PostMapping("/change-password")
     public Result<Void> changePassword(@RequestBody Map<String, Object> params) {
-        Long userId = Long.valueOf(params.get("userId").toString());
+        Long userId = getCurrentUserId();
         String oldPassword = (String) params.get("oldPassword");
         String newPassword = (String) params.get("newPassword");
+        if (userId == null) {
+            return Result.unauthorized("未登录或登录已过期");
+        }
         
         SysUser user = userService.getById(userId);
         if (user == null) {
@@ -95,5 +119,13 @@ public class AuthController {
         user.setPassword(passwordEncoder.encode(newPassword));
         userService.updateById(user);
         return Result.success("密码修改成功");
+    }
+
+    private Long getCurrentUserId() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getCredentials() instanceof Long) {
+            return (Long) authentication.getCredentials();
+        }
+        return null;
     }
 }

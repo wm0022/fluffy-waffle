@@ -38,9 +38,7 @@ public class SysMenuController {
         for (SysMenu menu : allMenus) {
             if (parentId.equals(menu.getParentId())) {
                 List<SysMenu> children = buildTree(allMenus, menu.getMenuId());
-                if (!children.isEmpty()) {
-                    // SysMenu没有children字段，直接返回平铺列表
-                }
+                menu.setChildren(children);
                 tree.add(menu);
             }
         }

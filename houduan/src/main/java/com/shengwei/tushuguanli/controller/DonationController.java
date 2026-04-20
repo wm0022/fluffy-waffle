@@ -4,6 +4,8 @@ import com.shengwei.tushuguanli.common.Result;
 import com.shengwei.tushuguanli.entity.DonationRecord;
 import com.shengwei.tushuguanli.service.DonationService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -24,6 +26,11 @@ public class DonationController {
      */
     @PostMapping("/submit")
     public Result<Void> submitDonation(@RequestBody DonationRecord record) {
+        Long userId = getCurrentUserId();
+        if (userId == null) {
+            return Result.unauthorized("未登录或登录已过期");
+        }
+        record.setUserId(userId);
         donationService.submitDonation(record);
         return Result.success("提交成功");
     }
@@ -33,6 +40,13 @@ public class DonationController {
      */
     @GetMapping("/myList")
     public Result<List<DonationRecord>> getUserDonations(@RequestParam Long userId) {
+        Long currentUserId = getCurrentUserId();
+        if (currentUserId == null) {
+            return Result.unauthorized("未登录或登录已过期");
+        }
+        if (!currentUserId.equals(userId)) {
+            return Result.forbidden("无权限访问");
+        }
         List<DonationRecord> list = donationService.getUserDonations(userId);
         return Result.success(list);
     }
@@ -54,7 +68,10 @@ public class DonationController {
         Long id = Long.valueOf(params.get("id").toString());
         Integer status = Integer.valueOf(params.get("status").toString());
         String reviewRemark = params.get("reviewRemark") != null ? params.get("reviewRemark").toString() : null;
-        Long reviewerId = params.containsKey("reviewerId") ? Long.valueOf(params.get("reviewerId").toString()) : 1L;
+        Long reviewerId = getCurrentUserId();
+        if (reviewerId == null) {
+            return Result.unauthorized("未登录或登录已过期");
+        }
 
         donationService.reviewDonation(id, status, reviewRemark, reviewerId);
         return Result.success("审核成功");
@@ -65,9 +82,21 @@ public class DonationController {
      */
     @PostMapping("/update")
     public Result<Void> updateDonation(@RequestBody DonationRecord record) {
+        if (getCurrentUserId() == null) {
+            return Result.unauthorized("未登录或登录已过期");
+        }
         donationService.updateDonation(record);
         return Result.success("更新成功");
     }
+
+    private Long getCurrentUserId() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getCredentials() instanceof Long) {
+            return (Long) authentication.getCredentials();
+        }
+        return null;
+    }
+
 
     /**
      * 统计捐赠信息

@@ -113,7 +113,8 @@ export default {
         // res 已经是 { token, userInfo } 对象
         this.$store.dispatch('login', {
           token: res.token,
-          userInfo: res.userInfo
+          userInfo: res.userInfo,
+          permissions: res.permissions
         })
         
         this.$message.success('登录成功')

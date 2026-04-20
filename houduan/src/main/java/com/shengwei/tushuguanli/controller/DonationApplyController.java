@@ -6,6 +6,8 @@ import com.shengwei.tushuguanli.common.Result;
 import com.shengwei.tushuguanli.entity.DonationApply;
 import com.shengwei.tushuguanli.service.DonationApplyService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -95,7 +97,12 @@ public class DonationApplyController {
             @PathVariable Long applyId,
             @RequestParam Integer auditStatus,
             @RequestParam String auditRemark,
-            @RequestParam Long auditUserId) {
+            @RequestParam(required = false) Long auditUserId) {
+        Long currentUserId = getCurrentUserId();
+        if (currentUserId == null) {
+            return Result.unauthorized("未登录或登录已过期");
+        }
+        auditUserId = currentUserId;
         donationApplyService.auditApply(applyId, auditStatus, auditRemark, auditUserId);
         return Result.success("审核操作成功");
     }
@@ -117,6 +124,15 @@ public class DonationApplyController {
         donationApplyService.cancelApply(applyId);
         return Result.success("捐赠申请已取消");
     }
+
+    private Long getCurrentUserId() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getCredentials() instanceof Long) {
+            return (Long) authentication.getCredentials();
+        }
+        return null;
+    }
+
 
     /**
      * 捐赠申请统计

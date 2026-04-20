@@ -10,6 +10,9 @@ import com.shengwei.tushuguanli.mapper.TradeOrderItemMapper;
 import com.shengwei.tushuguanli.service.ShoppingCartService;
 import com.shengwei.tushuguanli.service.TradeOrderService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -30,7 +33,10 @@ public class TradeOrderController {
 
     @PostMapping("/create")
     public Result<TradeOrder> createOrder(@RequestBody Map<String, Object> params) {
-        Long userId = Long.valueOf(params.get("userId").toString());
+        Long userId = getCurrentUserId();
+        if (userId == null) {
+            return Result.unauthorized("未登录或登录已过期");
+        }
         List<CartItemVO> cartItems = cartService.getCartList(userId);
         if (cartItems.isEmpty()) {
             return Result.error("购物车为空");
@@ -48,6 +54,16 @@ public class TradeOrderController {
 
     @GetMapping("/list")
     public Result<List<TradeOrder>> getOrderList(@RequestParam(required = false) Long userId) {
+        Long currentUserId = getCurrentUserId();
+        if (currentUserId == null) {
+            return Result.unauthorized("未登录或登录已过期");
+        }
+        if (userId != null && !currentUserId.equals(userId) && !hasAdminOrderPermission()) {
+            return Result.forbidden("无权限访问");
+        }
+        if (userId == null && !hasAdminOrderPermission()) {
+            userId = currentUserId;
+        }
         List<TradeOrder> orderList = orderService.getOrderList(userId);
         return Result.success(orderList);
     }
@@ -69,20 +85,30 @@ public class TradeOrderController {
     public Result<Void> applyRefund(@RequestBody Map<String, Object> params) {
         String orderNo = params.get("orderNo").toString();
         String reason = params.get("reason").toString();
-        Long userId = params.containsKey("userId") ? Long.valueOf(params.get("userId").toString()) : 1L;
+        Long userId = getCurrentUserId();
+        if (userId == null) {
+            return Result.unauthorized("未登录或登录已过期");
+        }
         orderService.applyRefund(orderNo, userId, reason);
         return Result.success("退款申请已提交");
     }
 
     @GetMapping("/refund/list")
     public Result<List<TradeOrderRefund>> getRefundList(@RequestParam(required = false) Long userId) {
-        if (userId != null) {
-            List<TradeOrderRefund> refundList = orderService.getRefundList(userId);
-            return Result.success(refundList);
-        } else {
-            List<TradeOrderRefund> refundList = orderService.getAllRefundList(null);
-            return Result.success(refundList);
+        Long currentUserId = getCurrentUserId();
+        if (currentUserId == null) {
+            return Result.unauthorized("未登录或登录已过期");
         }
+        if (userId != null) {
+            if (!currentUserId.equals(userId) && !hasAdminOrderPermission()) {
+                return Result.forbidden("无权限访问");
+            }
+            return Result.success(orderService.getRefundList(userId));
+        }
+        if (hasAdminOrderPermission()) {
+            return Result.success(orderService.getAllRefundList(null));
+        }
+        return Result.success(orderService.getRefundList(currentUserId));
     }
 
     @PostMapping("/refund/handle")
@@ -92,5 +118,26 @@ public class TradeOrderController {
         String remark = params.get("remark") != null ? params.get("remark").toString() : null;
         orderService.handleRefund(refundId, status, remark);
         return Result.success("处理成功");
+    }
+
+    private boolean hasAdminOrderPermission() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || authentication.getAuthorities() == null) {
+            return false;
+        }
+        for (GrantedAuthority authority : authentication.getAuthorities()) {
+            if ("/admin/order".equals(authority.getAuthority())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private Long getCurrentUserId() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getCredentials() instanceof Long) {
+            return (Long) authentication.getCredentials();
+        }
+        return null;
     }
 }

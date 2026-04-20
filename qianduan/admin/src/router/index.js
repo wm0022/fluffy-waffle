@@ -1,5 +1,6 @@
 import Vue from 'vue'
 import VueRouter from 'vue-router'
+import store from '@/store'
 
 Vue.use(VueRouter)
 
@@ -112,7 +113,25 @@ router.beforeEach((to, from, next) => {
   if (to.meta.title) {
     document.title = to.meta.title + ' - 圣惟书店管理系统'
   }
+  if (to.path.startsWith('/admin') && to.path !== '/admin/home' && to.path !== '/admin/password') {
+    const permissionKey = getPermissionKey(to.path)
+    if (permissionKey && !store.getters.hasPermission(permissionKey)) {
+      return next('/admin/home')
+    }
+  }
   next()
 })
+
+function getPermissionKey(path) {
+  if (path.startsWith('/admin/book')) return '/admin/book'
+  if (path.startsWith('/admin/inventory')) return '/admin/inventory'
+  if (path.startsWith('/admin/order')) return '/admin/order'
+  if (path.startsWith('/admin/member')) return '/admin/member'
+  if (path.startsWith('/admin/role')) return '/admin/role'
+  if (path.startsWith('/admin/review')) return '/admin/review'
+  if (path.startsWith('/admin/donation-manage')) return '/admin/donation-manage'
+  if (path.startsWith('/admin/donor')) return '/admin/donor-manage'
+  return null
+}
 
 export default router

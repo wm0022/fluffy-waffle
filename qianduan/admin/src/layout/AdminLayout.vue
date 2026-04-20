@@ -18,35 +18,35 @@
             <i class="el-icon-house"></i>
             <span slot="title">首页</span>
           </el-menu-item>
-          <el-menu-item index="/admin/role">
+          <el-menu-item v-if="hasPermission('/admin/role')" index="/admin/role">
             <i class="el-icon-s-custom"></i>
             <span slot="title">角色管理</span>
           </el-menu-item>
-          <el-menu-item index="/admin/member">
+          <el-menu-item v-if="hasPermission('/admin/member')" index="/admin/member">
             <i class="el-icon-user"></i>
             <span slot="title">用户管理</span>
           </el-menu-item>
-          <el-menu-item index="/admin/book">
+          <el-menu-item v-if="hasPermission('/admin/book')" index="/admin/book">
             <i class="el-icon-reading"></i>
             <span slot="title">图书管理</span>
           </el-menu-item>
-          <el-menu-item index="/admin/inventory">
+          <el-menu-item v-if="hasPermission('/admin/inventory')" index="/admin/inventory">
             <i class="el-icon-office-building"></i>
             <span slot="title">库存管理</span>
           </el-menu-item>
-          <el-menu-item index="/admin/order">
+          <el-menu-item v-if="hasPermission('/admin/order')" index="/admin/order">
             <i class="el-icon-shopping-cart-2"></i>
             <span slot="title">订单管理</span>
           </el-menu-item>
-          <el-menu-item index="/admin/donor">
+          <el-menu-item v-if="hasPermission('/admin/donor-manage')" index="/admin/donor-manage">
             <i class="el-icon-s-promotion"></i>
             <span slot="title">爱心赠书人士</span>
           </el-menu-item>
-          <el-menu-item index="/admin/donation-manage">
+          <el-menu-item v-if="hasPermission('/admin/donation-manage')" index="/admin/donation-manage">
             <i class="el-icon-document"></i>
             <span slot="title">捐赠审核</span>
           </el-menu-item>
-          <el-menu-item index="/admin/review">
+          <el-menu-item v-if="hasPermission('/admin/review')" index="/admin/review">
             <i class="el-icon-chat-dot-round"></i>
             <span slot="title">评价管理</span>
           </el-menu-item>
@@ -89,7 +89,7 @@ import { mapGetters } from 'vuex'
 export default {
   name: 'AdminLayout',
   computed: {
-    ...mapGetters(['userInfo']),
+    ...mapGetters(['userInfo', 'hasPermission']),
     sidebarOpened() {
       return this.$store.state.sidebarOpened
     },

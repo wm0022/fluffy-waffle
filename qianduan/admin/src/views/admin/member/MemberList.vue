@@ -35,9 +35,10 @@
           </template>
         </el-table-column>
         <el-table-column prop="createTime" label="注册时间" width="170" />
-        <el-table-column label="操作" fixed="right" width="150">
+        <el-table-column label="操作" fixed="right" width="220">
           <template slot-scope="scope">
             <el-button size="mini" type="primary" @click="handleEdit(scope.row)">编辑</el-button>
+            <el-button v-if="scope.row.userType === 1" size="mini" @click="handleRole(scope.row)">权限</el-button>
             <el-button size="mini" type="danger" @click="handleDelete(scope.row)">删除</el-button>
           </template>
         </el-table-column>
@@ -90,6 +91,20 @@
         <el-button type="primary" :loading="submitLoading" @click="handleSave">确定</el-button>
       </div>
     </el-dialog>
+
+    <el-dialog title="权限分配" :visible.sync="roleDialogVisible" width="420px">
+      <el-form label-width="80px">
+        <el-form-item label="角色">
+          <el-select v-model="selectedRoleIds" multiple placeholder="请选择角色" style="width: 100%;">
+            <el-option v-for="r in roleOptions" :key="r.roleId" :label="r.roleName" :value="r.roleId" />
+          </el-select>
+        </el-form-item>
+      </el-form>
+      <div slot="footer">
+        <el-button @click="roleDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="roleSubmitLoading" @click="saveRoles">确定</el-button>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
@@ -109,6 +124,11 @@ export default {
       dialogVisible: false,
       dialogTitle: '编辑用户',
       isCreate: false,
+      roleDialogVisible: false,
+      roleSubmitLoading: false,
+      roleOptions: [],
+      selectedRoleIds: [],
+      roleUserId: null,
       userForm: {
         id: null,
         username: '',
@@ -130,8 +150,17 @@ export default {
   },
   created() {
     this.getUserList()
+    this.loadRoles()
   },
   methods: {
+    async loadRoles() {
+      try {
+        const roles = await api.role.list()
+        this.roleOptions = roles || []
+      } catch (e) {
+        this.roleOptions = []
+      }
+    },
     async getUserList() {
       this.loading = true
       try {
@@ -195,6 +224,30 @@ export default {
           this.$message.error('删除失败')
         }
       }).catch(() => {})
+    },
+    async handleRole(row) {
+      this.roleUserId = row.id
+      this.roleDialogVisible = true
+      this.roleSubmitLoading = false
+      try {
+        const roleIds = await api.sysUser.getRoles(row.id)
+        this.selectedRoleIds = roleIds || []
+      } catch (e) {
+        this.selectedRoleIds = []
+      }
+    },
+    async saveRoles() {
+      if (!this.roleUserId) return
+      this.roleSubmitLoading = true
+      try {
+        await api.sysUser.setRoles(this.roleUserId, this.selectedRoleIds)
+        this.$message.success('保存成功')
+        this.roleDialogVisible = false
+      } catch (e) {
+        this.$message.error('保存失败')
+      } finally {
+        this.roleSubmitLoading = false
+      }
     },
     async handleSave() {
       this.$refs.userForm.validate(async (valid) => {

@@ -27,6 +27,12 @@ public class SecurityConfig {
     @Autowired
     private JwtAuthenticationFilter jwtAuthenticationFilter;
 
+    @Autowired
+    private RestAuthenticationEntryPoint restAuthenticationEntryPoint;
+
+    @Autowired
+    private RestAccessDeniedHandler restAccessDeniedHandler;
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
@@ -34,10 +40,25 @@ public class SecurityConfig {
             .csrf().disable()
             .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
             .authorizeRequests()
+            .antMatchers(HttpMethod.OPTIONS, "/**").permitAll()
             .antMatchers("/auth/login", "/auth/register").permitAll()
             .antMatchers("/uploads/**", "/druid/**").permitAll()
             .antMatchers(HttpMethod.GET, "/book/**").permitAll()
+            .antMatchers("/sysUser/page", "/sysUser/list", "/sysUser/create").hasAuthority("/admin/member")
+            .antMatchers(HttpMethod.DELETE, "/sysUser/**").hasAuthority("/admin/member")
+            .antMatchers("/role/**", "/menu/**").hasAuthority("/admin/role")
+            .antMatchers("/inventory/**").hasAuthority("/admin/inventory")
+            .antMatchers("/donor/**", "/donation/person/**").hasAuthority("/admin/donor-manage")
+            .antMatchers("/donation/all", "/donation/review", "/donation/update").hasAuthority("/admin/donation-manage")
+            .antMatchers("/donation-apply/**", "/donation-accept/**").hasAuthority("/admin/donation-manage")
+            .antMatchers("/book-review/page", "/book-review/*/audit", "/book-review/*/reply", "/book-review/*/toggle-visibility", "/book-review/fix-book-id").hasAuthority("/admin/review")
+            .antMatchers("/order/all").hasAuthority("/admin/order")
+            .antMatchers("/order/refund/handle").hasAuthority("/admin/order")
             .anyRequest().authenticated();
+
+        http.exceptionHandling()
+                .authenticationEntryPoint(restAuthenticationEntryPoint)
+                .accessDeniedHandler(restAccessDeniedHandler);
 
         http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 

@@ -11,6 +11,8 @@ import com.shengwei.tushuguanli.service.BookInfoService;
 import com.shengwei.tushuguanli.service.BookReviewService;
 import com.shengwei.tushuguanli.mapper.TradeOrderItemMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -83,6 +85,11 @@ public class BookReviewController {
 
     @PostMapping
     public Result<Void> addReview(@RequestBody BookReview bookReview) {
+        Long userId = getCurrentUserId();
+        if (userId == null) {
+            return Result.unauthorized("未登录或登录已过期");
+        }
+        bookReview.setMemberId(userId);
         bookReviewService.addReview(bookReview);
         return Result.success("评价添加成功");
     }
@@ -91,7 +98,10 @@ public class BookReviewController {
     public Result<Void> auditReview(@PathVariable Long reviewId, @RequestBody Map<String, Object> params) {
         Integer auditStatus = (Integer) params.get("auditStatus");
         String auditRemark = (String) params.get("auditRemark");
-        Long auditUserId = Long.valueOf(params.get("auditUserId").toString());
+        Long auditUserId = getCurrentUserId();
+        if (auditUserId == null) {
+            return Result.unauthorized("未登录或登录已过期");
+        }
         bookReviewService.auditReview(reviewId, auditStatus, auditRemark, auditUserId);
         return Result.success("审核操作成功");
     }
@@ -99,9 +109,20 @@ public class BookReviewController {
     @PostMapping("/{reviewId}/reply")
     public Result<Void> replyReview(@PathVariable Long reviewId, @RequestBody Map<String, Object> params) {
         String replyContent = (String) params.get("replyContent");
-        Long replyUserId = Long.valueOf(params.get("replyUserId").toString());
+        Long replyUserId = getCurrentUserId();
+        if (replyUserId == null) {
+            return Result.unauthorized("未登录或登录已过期");
+        }
         bookReviewService.replyReview(reviewId, replyContent, replyUserId);
         return Result.success("回复成功");
+    }
+
+    private Long getCurrentUserId() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getCredentials() instanceof Long) {
+            return (Long) authentication.getCredentials();
+        }
+        return null;
     }
 
     @PutMapping("/{reviewId}/toggle-visibility")

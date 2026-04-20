@@ -203,6 +203,15 @@ export default {
       url: `/sysUser/create`,
       method: 'post',
       data
+    }),
+    getRoles: (id) => request({
+      url: `/sysUser/${id}/roles`,
+      method: 'get'
+    }),
+    setRoles: (id, roleIds) => request({
+      url: `/sysUser/${id}/roles`,
+      method: 'post',
+      data: { roleIds }
     })
   },
   inventory: {
