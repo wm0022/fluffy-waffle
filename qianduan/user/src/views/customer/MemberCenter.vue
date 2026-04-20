@@ -231,7 +231,9 @@ export default {
   computed: {
     ...mapGetters(['userInfo']),
     userId() {
-      return this.userInfo.id || 1
+      // 兼容处理：如果 userInfo 是旧的 Result 包装格式（有 code 字段），从 data 中取 id
+      const uid = this.userInfo?.id || this.userInfo?.data?.id
+      return uid || 1
     },
     genderText() {
       if (this.userInfo.gender === 1) return '男'
@@ -271,7 +273,7 @@ export default {
       try {
         const res = await api.user.getById(this.userId)
         if (res) {
-          this.$store.commit('SET_USER', res)
+          this.$store.commit('SET_USER_INFO', res)
         }
       } catch (e) {
         console.error('加载用户信息失败', e)
