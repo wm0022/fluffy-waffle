@@ -89,8 +89,11 @@ public class TradeOrderServiceImpl extends ServiceImpl<TradeOrderMapper, TradeOr
 
         save(order);
 
-        // 创建订单明细
+        // 创建订单明细 + 锁定库存
         for (CartItemVO item : cartItems) {
+            // 锁定库存（下单时预占，防止超卖）
+            inventoryService.lockStock(item.getBookId(), item.getQuantity());
+
             TradeOrderItem orderItem = new TradeOrderItem();
             orderItem.setOrderId(order.getId());
             orderItem.setBookId(item.getBookId());
@@ -142,20 +145,20 @@ public class TradeOrderServiceImpl extends ServiceImpl<TradeOrderMapper, TradeOr
         if (updated) {
             System.out.println("订单支付成功，订单号: " + orderNo);
             
-            // 减少库存
+            // 确认扣减锁定库存（支付成功，从锁定库存中真正扣除）
             try {
                 List<TradeOrderItem> orderItems = orderItemMapper.selectList(
                         new LambdaQueryWrapper<TradeOrderItem>()
                                 .eq(TradeOrderItem::getOrderId, order.getId()));
                 for (TradeOrderItem item : orderItems) {
                     try {
-                        inventoryService.decreaseStock(item.getBookId(), item.getQuantity());
+                        inventoryService.confirmDeduction(item.getBookId(), item.getQuantity());
                     } catch (Exception e) {
-                        System.out.println("减少库存异常: " + e.getMessage());
+                        System.out.println("扣减锁定库存异常: " + e.getMessage());
                     }
                 }
             } catch (Exception e) {
-                System.out.println("查询订单或减少库存异常: " + e.getMessage());
+                System.out.println("查询订单或扣减库存异常: " + e.getMessage());
             }
             
             // 更新会员信息（累计消费金额、积分、等级）
@@ -304,14 +307,15 @@ public class TradeOrderServiceImpl extends ServiceImpl<TradeOrderMapper, TradeOr
                 order.setUpdateTime(LocalDateTime.now());
                 updateById(order);
 
+                // 释放锁定库存（退款/取消时恢复可用库存）
                 List<TradeOrderItem> orderItems = orderItemMapper.selectList(
                         new LambdaQueryWrapper<TradeOrderItem>()
                                 .eq(TradeOrderItem::getOrderId, order.getId()));
                 for (TradeOrderItem item : orderItems) {
                     try {
-                        inventoryService.increaseStock(item.getBookId(), item.getQuantity());
+                        inventoryService.releaseStock(item.getBookId(), item.getQuantity());
                     } catch (Exception e) {
-                        System.out.println("恢复库存异常: " + e.getMessage());
+                        System.out.println("释放锁定库存异常: " + e.getMessage());
                     }
                 }
             }

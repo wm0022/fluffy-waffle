@@ -39,6 +39,11 @@ public interface InventoryService extends IService<Inventory> {
     void releaseStock(Long bookId, Integer quantity);
 
     /**
+     * 确认扣减锁定库存（支付成功后调用，从锁定库存中真正扣除）
+     */
+    void confirmDeduction(Long bookId, Integer quantity);
+
+    /**
      * 检查库存是否充足
      */
     boolean checkStock(Long bookId, Integer quantity);

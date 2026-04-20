@@ -106,6 +106,25 @@ public class InventoryServiceImpl extends ServiceImpl<InventoryMapper, Inventory
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void confirmDeduction(Long bookId, Integer quantity) {
+        Inventory inventory = getInventoryByBookId(bookId);
+        if (inventory == null) {
+            throw new BusinessException("库存不存在");
+        }
+
+        if (inventory.getLockedQuantity() < quantity) {
+            throw new BusinessException("锁定库存不足，无法扣减");
+        }
+
+        // 从锁定库存中扣除，同时减少总库存
+        inventory.setLockedQuantity(inventory.getLockedQuantity() - quantity);
+        inventory.setStockQuantity(inventory.getStockQuantity() - quantity);
+        updateStockStatus(inventory);
+        updateById(inventory);
+    }
+
+    @Override
     public boolean checkStock(Long bookId, Integer quantity) {
         Inventory inventory = getInventoryByBookId(bookId);
         return inventory != null && inventory.getAvailableQuantity() >= quantity;

@@ -10,23 +10,24 @@
             </el-button>
           </div>
           
-          <el-table :data="inventoryList" style="width: 100%" v-loading="loading">
-            <el-table-column prop="bookName" label="图书名称" width="200" />
-            <el-table-column prop="author" label="作者" width="120" />
-            <el-table-column label="当前库存" width="100">
+          <el-table :data="inventoryList" style="width: 100%" v-loading="loading" border>
+            <el-table-column prop="bookName" label="图书名称" min-width="180" />
+            <el-table-column prop="author" label="作者" min-width="100" />
+            <el-table-column label="当前库存" min-width="100" align="center">
               <template slot-scope="scope">
                 <span :class="getStockClass(scope.row)">{{ scope.row.stockQuantity }}</span>
               </template>
             </el-table-column>
-            <el-table-column label="可用库存" width="100" prop="availableQuantity" />
-            <el-table-column label="锁定库存" width="100" prop="lockedQuantity" />
-            <el-table-column label="最低库存" width="100">
+            <el-table-column label="可用库存" min-width="100" prop="availableQuantity" align="center" />
+            <el-table-column label="锁定库存" min-width="100" prop="lockedQuantity" align="center" />
+            <el-table-column label="最低库存" min-width="140" align="center">
               <template slot-scope="scope">
-                <el-input-number v-model="scope.row.minStock" size="mini" :min="0" :max="1000" 
+                <el-input-number v-model="scope.row.minStock" size="mini" :min="0" :max="1000"
+                  :controls="true" controls-position="right" style="width: 110px;"
                   @change="() => handleUpdate(scope.row)" />
               </template>
             </el-table-column>
-            <el-table-column label="库存状态" width="100">
+            <el-table-column label="库存状态" min-width="100" align="center">
               <template slot-scope="scope">
                 <el-tag :type="getStatusType(scope.row.stockStatus)">
                   {{ getStatusText(scope.row.stockStatus) }}
@@ -329,8 +330,14 @@ export default {
       
       this.salesChart.setOption(option)
     },
-    handleUpdate(row) {
-      this.$message.success('更新成功')
+    async handleUpdate(row) {
+      try {
+        await api.inventory.update({ inventoryId: row.inventoryId, minStock: row.minStock })
+        this.$message.success('最低库存已更新')
+      } catch (error) {
+        console.error('更新最低库存失败:', error)
+        this.$message.error('更新最低库存失败')
+      }
     },
     handleRestock(row) {
       this.currentBook = row

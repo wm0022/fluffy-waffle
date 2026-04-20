@@ -3,14 +3,12 @@ package com.shengwei.tushuguanli.controller;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.shengwei.tushuguanli.common.Result;
 import com.shengwei.tushuguanli.entity.BookInfo;
-import com.shengwei.tushuguanli.entity.DonationApply;
 import com.shengwei.tushuguanli.entity.Inventory;
 import com.shengwei.tushuguanli.entity.TradeOrder;
 import com.shengwei.tushuguanli.entity.TradeOrderItem;
 import com.shengwei.tushuguanli.mapper.BookInfoMapper;
 import com.shengwei.tushuguanli.mapper.TradeOrderItemMapper;
 import com.shengwei.tushuguanli.mapper.TradeOrderMapper;
-import com.shengwei.tushuguanli.service.DonationApplyService;
 import com.shengwei.tushuguanli.service.InventoryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -31,9 +29,6 @@ import java.util.stream.Collectors;
 public class HomeController {
 
     @Autowired
-    private DonationApplyService donationApplyService;
-
-    @Autowired
     private InventoryService inventoryService;
 
     @Autowired
@@ -51,11 +46,6 @@ public class HomeController {
     @GetMapping("/todo-stats")
     public Result<Map<String, Object>> getTodoStats() {
         Map<String, Object> result = new HashMap<>();
-
-        // 待审核捐赠申请数量 (auditStatus = 0 表示待审核)
-        long pendingDonationCount = donationApplyService.count(
-                new LambdaQueryWrapper<DonationApply>().eq(DonationApply::getAuditStatus, 0));
-        result.put("pendingDonationApplyCount", pendingDonationCount);
 
         // 库存预警数量
         List<Inventory> allInventories = inventoryService.list();
