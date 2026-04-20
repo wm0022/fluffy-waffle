@@ -64,7 +64,10 @@ public class InventoryServiceImpl extends ServiceImpl<InventoryMapper, Inventory
             inventory = getInventoryByBookId(bookId);
         }
 
-        // 演示系统：直接减少库存，允许负数
+        if (inventory.getAvailableQuantity() < quantity) {
+            throw new BusinessException("库存不足，无法扣减");
+        }
+
         inventory.setStockQuantity(inventory.getStockQuantity() - quantity);
         inventory.setAvailableQuantity(inventory.getAvailableQuantity() - quantity);
         updateStockStatus(inventory);

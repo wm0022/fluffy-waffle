@@ -1,6 +1,8 @@
 package com.shengwei.tushuguanli.controller;
 
 import com.shengwei.tushuguanli.common.Result;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -23,6 +25,8 @@ import java.util.UUID;
 @RequestMapping("/upload")
 @CrossOrigin(origins = "*")
 public class FileUploadController {
+
+    private static final Logger log = LoggerFactory.getLogger(FileUploadController.class);
 
     @Value("${upload.path:./uploads}")
     private String uploadPath;
@@ -66,7 +70,7 @@ public class FileUploadController {
 
             return Result.success(result);
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error("上传图书封面失败", e);
             return Result.error("上传失败：" + e.getMessage());
         }
     }
@@ -108,7 +112,7 @@ public class FileUploadController {
 
             return Result.success(result);
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error("上传文件失败", e);
             return Result.error("上传失败：" + e.getMessage());
         }
     }

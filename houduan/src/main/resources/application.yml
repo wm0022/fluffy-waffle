@@ -7,9 +7,9 @@ spring:
   application:
     name: shengwei-bookstore
   redis:
-    host: localhost
-    port: 6379
-    password: 2386326442
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD:2386326442}
     database: 0
     lettuce:
       pool:
@@ -24,9 +24,9 @@ spring:
   datasource:
     type: com.alibaba.druid.pool.DruidDataSource
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/shengwei_bookstore?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
-    username: root
-    password: 2386326442
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/shengwei_bookstore?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: ${DB_USER:root}
+    password: ${DB_PASSWORD:2386326442}
     druid:
       initial-size: 5
       min-idle: 5
@@ -43,8 +43,8 @@ spring:
       stat-view-servlet:
         enabled: true
         url-pattern: /druid/*
-        login-username: admin
-        login-password: admin123
+        login-username: ${DRUID_USER:admin}
+        login-password: ${DRUID_PASSWORD:admin123}
       web-stat-filter:
         enabled: true
         url-pattern: /*
@@ -75,7 +75,7 @@ jwt:
 
 # 文件上传路径配置
 upload:
-  path: d:/java/waibao/tushuguanli/qianduan/user/public/uploads
+  path: ${UPLOAD_PATH:./uploads}
 
 # 日志配置
 logging:

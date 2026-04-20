@@ -20,8 +20,8 @@ SET FOREIGN_KEY_CHECKS = 0;
 -- ----------------------------
 -- Table structure for book_info
 -- ----------------------------
-create database shengwei_bookstore;
-use database shegnwei_bookstore;
+CREATE DATABASE IF NOT EXISTS `shengwei_bookstore` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE `shengwei_bookstore`;
 DROP TABLE IF EXISTS `book_info`;
 CREATE TABLE `book_info`  (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT '图书ID',

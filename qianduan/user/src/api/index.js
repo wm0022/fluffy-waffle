@@ -1,4 +1,6 @@
 import axios from 'axios'
+import store from '@/store'
+import Cookies from 'js-cookie'
 
 const API_BASE = '/api'
 
@@ -11,8 +13,8 @@ const service = axios.create({
 // 请求拦截器
 service.interceptors.request.use(
   config => {
-    // 可以在这里添加token等
-    const token = localStorage.getItem('token')
+    // 从 store 统一获取 token，与 utils/request.js 保持一致
+    const token = store.state.token || localStorage.getItem('token') || Cookies.get('token')
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`
     }

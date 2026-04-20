@@ -18,6 +18,8 @@ import com.shengwei.tushuguanli.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -28,6 +30,8 @@ import java.util.*;
  */
 @Service
 public class TradeOrderServiceImpl extends ServiceImpl<TradeOrderMapper, TradeOrder> implements TradeOrderService {
+
+    private static final Logger log = LoggerFactory.getLogger(TradeOrderServiceImpl.class);
 
     @Autowired
     private ShoppingCartService cartService;
@@ -56,7 +60,7 @@ public class TradeOrderServiceImpl extends ServiceImpl<TradeOrderMapper, TradeOr
 
         // 生成订单号
         String orderNo = generateOrderNo();
-        System.out.println("创建订单，订单号：" + orderNo);
+        log.info("创建订单，订单号：{}", orderNo);
 
         // 计算总金额
         BigDecimal totalAmount = BigDecimal.ZERO;
@@ -112,7 +116,7 @@ public class TradeOrderServiceImpl extends ServiceImpl<TradeOrderMapper, TradeOr
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void payOrder(String orderNo) {
-        System.out.println("支付订单，订单号：" + orderNo);
+        log.info("支付订单，订单号：{}", orderNo);
         
         // 查询订单
         TradeOrder order = getOne(new LambdaQueryWrapper<TradeOrder>()
@@ -123,7 +127,7 @@ public class TradeOrderServiceImpl extends ServiceImpl<TradeOrderMapper, TradeOr
         }
         
         if (order.getStatus() != 0) {
-            System.out.println("订单已支付或已取消，订单号: " + orderNo);
+            log.warn("订单已支付或已取消，订单号: {}", orderNo);
             return;
         }
         
@@ -140,7 +144,7 @@ public class TradeOrderServiceImpl extends ServiceImpl<TradeOrderMapper, TradeOr
         boolean updated = update(updateEntity, updateWrapper);
         
         if (updated) {
-            System.out.println("订单支付成功，订单号: " + orderNo);
+            log.info("订单支付成功，订单号: {}", orderNo);
             
             // 减少库存
             try {
@@ -151,18 +155,18 @@ public class TradeOrderServiceImpl extends ServiceImpl<TradeOrderMapper, TradeOr
                     try {
                         inventoryService.decreaseStock(item.getBookId(), item.getQuantity());
                     } catch (Exception e) {
-                        System.out.println("减少库存异常: " + e.getMessage());
+                        log.error("减少库存异常", e);
                     }
                 }
             } catch (Exception e) {
-                System.out.println("查询订单或减少库存异常: " + e.getMessage());
+                log.error("查询订单或减少库存异常", e);
             }
             
             // 更新会员信息（累计消费金额、积分、等级）
             try {
                 memberService.updateMemberInfo(order.getUserId(), order.getPayAmount());
             } catch (Exception e) {
-                System.out.println("更新会员信息异常: " + e.getMessage());
+                log.error("更新会员信息异常", e);
             }
         }
     }
@@ -311,7 +315,7 @@ public class TradeOrderServiceImpl extends ServiceImpl<TradeOrderMapper, TradeOr
                     try {
                         inventoryService.increaseStock(item.getBookId(), item.getQuantity());
                     } catch (Exception e) {
-                        System.out.println("恢复库存异常: " + e.getMessage());
+                        log.error("恢复库存异常", e);
                     }
                 }
             }

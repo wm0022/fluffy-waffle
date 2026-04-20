@@ -33,16 +33,9 @@ public class UserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impleme
             throw new BusinessException("用户名不存在");
         }
 
-        // 先用BCrypt比对，失败则尝试明文比对（兼容数据库中存明文密码的情况）
+        // 使用 BCrypt 比对密码
         boolean passwordMatch = passwordEncoder.matches(password, user.getPassword());
-        if (!passwordMatch && password.equals(user.getPassword())) {
-            // 明文匹配成功，自动升级为BCrypt加密存储
-            SysUser updateUser = new SysUser();
-            updateUser.setId(user.getId());
-            updateUser.setPassword(passwordEncoder.encode(password));
-            userMapper.updateById(updateUser);
-            passwordMatch = true;
-        }
+        
         if (!passwordMatch) {
             throw new BusinessException("密码错误");
         }

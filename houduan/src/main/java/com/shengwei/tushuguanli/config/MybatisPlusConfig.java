@@ -7,6 +7,8 @@ import com.baomidou.mybatisplus.extension.plugins.inner.PaginationInnerIntercept
 import org.apache.ibatis.reflection.MetaObject;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.time.LocalDateTime;
 
@@ -38,7 +40,10 @@ public class MybatisPlusConfig implements MetaObjectHandler {
     }
 
     private Long getCurrentUserId() {
-        // TODO: 从安全上下文获取当前用户 ID
-        return 1L;
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getCredentials() instanceof Long) {
+            return (Long) authentication.getCredentials();
+        }
+        return 1L; // 兜底返回 1L
     }
 }
