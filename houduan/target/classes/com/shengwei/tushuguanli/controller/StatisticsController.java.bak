@@ -1,0 +1,206 @@
+package com.shengwei.tushuguanli.controller;
+
+import com.shengwei.tushuguanli.common.Result;
+import com.shengwei.tushuguanli.service.StatisticsService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * 数据统计控制器
+ */
+@RestController
+@RequestMapping("/statistics")
+public class StatisticsController {
+
+    @Autowired
+    private StatisticsService statisticsService;
+
+    /**
+     * 销售统计
+     */
+    @GetMapping("/sales")
+    public Result<Map<String, Object>> salesStatistics(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        
+        if (startDate == null) {
+            startDate = LocalDate.now().minusMonths(1);
+        }
+        if (endDate == null) {
+            endDate = LocalDate.now();
+        }
+
+        Map<String, Object> result = statisticsService.salesStatistics(startDate, endDate);
+        return Result.success(result);
+    }
+
+    /**
+     * 订单统计
+     */
+    @GetMapping("/orders")
+    public Result<Map<String, Object>> orderStatistics(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        
+        if (startDate == null) {
+            startDate = LocalDate.now().minusMonths(1);
+        }
+        if (endDate == null) {
+            endDate = LocalDate.now();
+        }
+
+        Map<String, Object> result = statisticsService.orderStatistics(startDate, endDate);
+        return Result.success(result);
+    }
+
+    /**
+     * 会员统计
+     */
+    @GetMapping("/members")
+    public Result<Map<String, Object>> memberStatistics(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        
+        if (startDate == null) {
+            startDate = LocalDate.now().minusMonths(1);
+        }
+        if (endDate == null) {
+            endDate = LocalDate.now();
+        }
+
+        Map<String, Object> result = statisticsService.memberStatistics(startDate, endDate);
+        return Result.success(result);
+    }
+
+    /**
+     * 库存统计
+     */
+    @GetMapping("/inventory")
+    public Result<Map<String, Object>> inventoryStatistics() {
+        Map<String, Object> result = statisticsService.inventoryStatistics();
+        return Result.success(result);
+    }
+
+    /**
+     * 捐赠统计
+     */
+    @GetMapping("/donations")
+    public Result<Map<String, Object>> donationStatistics(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        
+        if (startDate == null) {
+            startDate = LocalDate.now().minusMonths(1);
+        }
+        if (endDate == null) {
+            endDate = LocalDate.now();
+        }
+
+        Map<String, Object> result = statisticsService.donationStatistics(startDate, endDate);
+        return Result.success(result);
+    }
+
+    /**
+     * 图书销售排行
+     */
+    @GetMapping("/book-sales-ranking")
+    public Result<List<Map<String, Object>>> bookSalesRanking(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(defaultValue = "10") Integer limit) {
+        
+        if (startDate == null) {
+            startDate = LocalDate.now().minusMonths(1);
+        }
+        if (endDate == null) {
+            endDate = LocalDate.now();
+        }
+
+        List<Map<String, Object>> result = statisticsService.bookSalesRanking(startDate, endDate, limit);
+        return Result.success(result);
+    }
+
+    /**
+     * 捐赠人排行
+     */
+    @GetMapping("/donor-ranking")
+    public Result<List<Map<String, Object>>> donorRanking(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(defaultValue = "10") Integer limit) {
+        
+        if (startDate == null) {
+            startDate = LocalDate.now().minusMonths(1);
+        }
+        if (endDate == null) {
+            endDate = LocalDate.now();
+        }
+
+        List<Map<String, Object>> result = statisticsService.donorRanking(startDate, endDate, limit);
+        return Result.success(result);
+    }
+
+    /**
+     * 月度销售趋势
+     */
+    @GetMapping("/monthly-sales-trend")
+    public Result<List<Map<String, Object>>> monthlySalesTrend(
+            @RequestParam(required = false) Integer year) {
+        
+        List<Map<String, Object>> result = statisticsService.monthlySalesTrend(year);
+        return Result.success(result);
+    }
+
+    /**
+     * 会员增长趋势
+     */
+    @GetMapping("/member-growth-trend")
+    public Result<List<Map<String, Object>>> memberGrowthTrend(
+            @RequestParam(required = false) Integer year) {
+        
+        List<Map<String, Object>> result = statisticsService.memberGrowthTrend(year);
+        return Result.success(result);
+    }
+
+    /**
+     * 综合统计信息
+     */
+    @GetMapping("/dashboard")
+    public Result<Map<String, Object>> dashboardStatistics() {
+        Map<String, Object> result = new java.util.HashMap<>();
+        
+        // 销售统计
+        Map<String, Object> salesStats = statisticsService.salesStatistics(
+                LocalDate.now().minusDays(30), LocalDate.now());
+        result.put("sales", salesStats);
+        
+        // 订单统计
+        Map<String, Object> orderStats = statisticsService.orderStatistics(
+                LocalDate.now().minusDays(30), LocalDate.now());
+        result.put("orders", orderStats);
+        
+        // 会员统计
+        Map<String, Object> memberStats = statisticsService.memberStatistics(
+                LocalDate.now().minusDays(30), LocalDate.now());
+        result.put("members", memberStats);
+        
+        // 库存统计
+        Map<String, Object> inventoryStats = statisticsService.inventoryStatistics();
+        result.put("inventory", inventoryStats);
+        
+        // 捐赠统计
+        Map<String, Object> donationStats = statisticsService.donationStatistics(
+                LocalDate.now().minusDays(30), LocalDate.now());
+        result.put("donations", donationStats);
+        
+        return Result.success(result);
+    }
+}
