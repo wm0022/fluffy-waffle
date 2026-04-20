@@ -3,6 +3,9 @@ package com.shengwei.tushuguanli.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.shengwei.tushuguanli.entity.BookInfo;
 import com.shengwei.tushuguanli.entity.DonationApply;
 import com.shengwei.tushuguanli.entity.Inventory;
@@ -12,20 +15,38 @@ import com.shengwei.tushuguanli.service.BookInfoService;
 import com.shengwei.tushuguanli.service.DonationApplyService;
 import com.shengwei.tushuguanli.service.DonationService;
 import com.shengwei.tushuguanli.service.InventoryService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
-import java.util.HashMap;
+import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 /**
- * 图书信息服务实现
+ * 图书信息服务实现（含 Redis 缓存）
  */
 @Service
 public class BookInfoServiceImpl extends ServiceImpl<BookInfoMapper, BookInfo> implements BookInfoService {
+
+    private static final Logger log = LoggerFactory.getLogger(BookInfoServiceImpl.class);
+
+    // ==================== Redis 缓存 Key 前缀 ====================
+    private static final String CACHE_KEY_HOT = "book:hot:";
+    private static final String CACHE_KEY_NEW = "book:new:";
+    private static final String CACHE_KEY_DETAIL = "book:detail:";
+    private static final String CACHE_KEY_PAGE = "book:page:";
+
+    // ==================== 缓存过期时间（秒） ====================
+    private static final long HOT_CACHE_TTL = 300;       // 热销 5分钟
+    private static final long NEW_CACHE_TTL = 300;        // 新品 5分钟
+    private static final long DETAIL_CACHE_TTL = 900;     // 详情 15分钟
+    private static final long PAGE_CACHE_TTL = 180;       // 分页列表 3分钟
 
     @Autowired
     private InventoryService inventoryService;
@@ -36,11 +57,86 @@ public class BookInfoServiceImpl extends ServiceImpl<BookInfoMapper, BookInfo> i
     @Autowired
     private DonationApplyService donationApplyService;
 
+    @Autowired
+    private RedisTemplate<String, Object> redisTemplate;
+
+    private ObjectMapper objectMapper = new ObjectMapper() {{
+        // 注册 Java 8 时间类型模块（LocalDate/LocalDateTime 等）
+        registerModule(new JavaTimeModule());
+    }};
+
+    // ==================== 查询方法（带缓存） ====================
+
+    /**
+     * 重写 getById，加入 Redis 缓存（图书详情页高频接口）
+     */
+    @Override
+    public BookInfo getById(Serializable id) {
+        String cacheKey = CACHE_KEY_DETAIL + id;
+
+        try {
+            Object cached = redisTemplate.opsForValue().get(cacheKey);
+            if (cached != null) {
+                log.debug("图书详情命中缓存 key={}", cacheKey);
+                return objectMapper.convertValue(cached, BookInfo.class);
+            }
+        } catch (Exception e) {
+            log.warn("读取图书详情缓存异常: {}", e.getMessage());
+        }
+
+        // 缓存未命中，查库
+        BookInfo bookInfo = super.getById(id);
+
+        // 存在才写入缓存
+        if (bookInfo != null) {
+            try {
+                redisTemplate.opsForValue().set(cacheKey, bookInfo, DETAIL_CACHE_TTL, TimeUnit.SECONDS);
+                log.debug("图书详情已写入缓存 key={}, ttl={}s", cacheKey, DETAIL_CACHE_TTL);
+            } catch (Exception e) {
+                log.warn("写入图书详情缓存异常: {}", e.getMessage());
+            }
+        }
+
+        return bookInfo;
+    }
+
     @Override
     public Page<BookInfo> pageBookList(Integer pageNum, Integer pageSize, Map<String, Object> params) {
+        // 构建缓存 key：将查询参数拼接成唯一标识
+        String cacheKey = buildPageCacheKey(pageNum, pageSize, params);
+
+        try {
+            // 1. 尝试从 Redis 获取缓存（Jackson 序列化器自动反序列化）
+            Object cached = redisTemplate.opsForValue().get(cacheKey);
+            if (cached != null) {
+                log.debug("图书分页列表命中缓存 key={}", cacheKey);
+                return objectMapper.convertValue(cached, new TypeReference<Page<BookInfo>>() {});
+            }
+        } catch (Exception e) {
+            log.warn("读取图书分页缓存异常，走数据库查询: {}", e.getMessage());
+        }
+
+        // 2. 缓存未命中，查库
+        Page<BookInfo> page = queryFromDb(pageNum, pageSize, params);
+
+        // 3. 写入缓存（Jackson 序列化器自动处理序列化）
+        try {
+            redisTemplate.opsForValue().set(cacheKey, page, PAGE_CACHE_TTL, TimeUnit.SECONDS);
+            log.debug("图书分页列表已写入缓存 key={}, ttl={}s", cacheKey, PAGE_CACHE_TTL);
+        } catch (Exception e) {
+            log.warn("写入图书分页缓存异常（不影响业务）: {}", e.getMessage());
+        }
+
+        return page;
+    }
+
+    /**
+     * 实际的数据库查询逻辑（从原方法抽取）
+     */
+    private Page<BookInfo> queryFromDb(Integer pageNum, Integer pageSize, Map<String, Object> params) {
         Page<BookInfo> page = new Page<>(pageNum, pageSize);
         LambdaQueryWrapper<BookInfo> wrapper = new LambdaQueryWrapper<>();
-        
+
         if (params != null) {
             String bookName = (String) params.get("bookName");
             String author = (String) params.get("author");
@@ -81,20 +177,66 @@ public class BookInfoServiceImpl extends ServiceImpl<BookInfoMapper, BookInfo> i
 
     @Override
     public List<BookInfo> getHotBooks(Integer limit) {
+        String cacheKey = CACHE_KEY_HOT + limit;
+
+        try {
+            Object cached = redisTemplate.opsForValue().get(cacheKey);
+            if (cached != null) {
+                log.debug("热销图书命中缓存 key={}", cacheKey);
+                return objectMapper.convertValue(cached, new TypeReference<List<BookInfo>>() {});
+            }
+        } catch (Exception e) {
+            log.warn("读取热销缓存异常: {}", e.getMessage());
+        }
+
+        // 查库
         LambdaQueryWrapper<BookInfo> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(BookInfo::getShelfStatus, 1)
                .orderByDesc(BookInfo::getSalesVolume)
                .last("LIMIT " + limit);
-        return list(wrapper);
+        List<BookInfo> books = list(wrapper);
+
+        // 写入缓存
+        try {
+            redisTemplate.opsForValue().set(cacheKey, books, HOT_CACHE_TTL, TimeUnit.SECONDS);
+            log.debug("热销图书已写入缓存 key={}", cacheKey);
+        } catch (Exception e) {
+            log.warn("写入热销缓存异常: {}", e.getMessage());
+        }
+
+        return books;
     }
 
     @Override
     public List<BookInfo> getNewBooks(Integer limit) {
+        String cacheKey = CACHE_KEY_NEW + limit;
+
+        try {
+            Object cached = redisTemplate.opsForValue().get(cacheKey);
+            if (cached != null) {
+                log.debug("新品图书命中缓存 key={}", cacheKey);
+                return objectMapper.convertValue(cached, new TypeReference<List<BookInfo>>() {});
+            }
+        } catch (Exception e) {
+            log.warn("读取新品缓存异常: {}", e.getMessage());
+        }
+
+        // 查库
         LambdaQueryWrapper<BookInfo> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(BookInfo::getShelfStatus, 1)
                .orderByDesc(BookInfo::getShelfTime)
                .last("LIMIT " + limit);
-        return list(wrapper);
+        List<BookInfo> books = list(wrapper);
+
+        // 写入缓存
+        try {
+            redisTemplate.opsForValue().set(cacheKey, books, NEW_CACHE_TTL, TimeUnit.SECONDS);
+            log.debug("新品图书已写入缓存 key={}", cacheKey);
+        } catch (Exception e) {
+            log.warn("写入新品缓存异常: {}", e.getMessage());
+        }
+
+        return books;
     }
 
     @Override
@@ -107,6 +249,8 @@ public class BookInfoServiceImpl extends ServiceImpl<BookInfoMapper, BookInfo> i
         return getOne(wrapper);
     }
 
+    // ==================== 写操作（带缓存清除） ====================
+
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void addBook(BookInfo bookInfo) {
@@ -116,10 +260,12 @@ public class BookInfoServiceImpl extends ServiceImpl<BookInfoMapper, BookInfo> i
                 throw new BusinessException("该 ISBN 图书已存在");
             }
         }
-        
-        save(bookInfo);
 
+        save(bookInfo);
         inventoryService.createInventory(bookInfo.getId(), bookInfo.getStockCount());
+
+        // 清除所有图书相关缓存
+        clearAllBookCache();
     }
 
     @Override
@@ -140,6 +286,10 @@ public class BookInfoServiceImpl extends ServiceImpl<BookInfoMapper, BookInfo> i
         }
 
         updateById(bookInfo);
+
+        // 清除所有图书相关缓存（含详情缓存）
+        clearAllBookCache();
+        clearDetailCache(bookInfo.getId());
     }
 
     @Override
@@ -152,6 +302,10 @@ public class BookInfoServiceImpl extends ServiceImpl<BookInfoMapper, BookInfo> i
 
         removeById(id);
         inventoryService.deleteByBookId(id);
+
+        // 清除所有图书相关缓存
+        clearAllBookCache();
+        clearDetailCache(id);
     }
 
     @Override
@@ -164,12 +318,16 @@ public class BookInfoServiceImpl extends ServiceImpl<BookInfoMapper, BookInfo> i
 
         bookInfo.setShelfStatus(shelfStatus);
         updateById(bookInfo);
+
+        // 上下架影响热销/新品/分页/详情
+        clearAllBookCache();
+        clearDetailCache(id);
     }
 
     @Override
     public Map<String, Object> countBooks(Map<String, Object> params) {
-        Map<String, Object> result = new HashMap<>();
-        
+        Map<String, Object> result = new java.util.HashMap<>();
+
         long totalCount = count();
         result.put("totalCount", totalCount);
 
@@ -188,10 +346,53 @@ public class BookInfoServiceImpl extends ServiceImpl<BookInfoMapper, BookInfo> i
                 .orderByDesc(BookInfo::getShelfTime)
                 .last("LIMIT 30"));
         result.put("newBookCount", newBookCount);
-        
+
         Map<String, Object> donationStats = donationService.countDonations();
         result.put("donationBookCount", donationStats.getOrDefault("total", 0L));
 
         return result;
+    }
+
+    // ==================== 缓存 Key 构建 / 清除工具方法 ====================
+
+    /**
+     * 构建分页查询的缓存 Key
+     */
+    private String buildPageCacheKey(Integer pageNum, Integer pageSize, Map<String, Object> params) {
+        StringBuilder sb = new StringBuilder(CACHE_KEY_PAGE);
+        sb.append(pageNum).append(":").append(pageSize).append(":");
+        if (params != null) {
+            sb.append(params.hashCode());
+        }
+        return sb.toString();
+    }
+
+    /**
+     * 清除所有图书列表类缓存（热销、新品、分页）
+     */
+    private void clearAllBookCache() {
+        try {
+            // 批量删除匹配前缀的 key
+            redisTemplate.delete(redisTemplate.keys(CACHE_KEY_HOT + "*"));
+            redisTemplate.delete(redisTemplate.keys(CACHE_KEY_NEW + "*"));
+            redisTemplate.delete(redisTemplate.keys(CACHE_KEY_PAGE + "*"));
+            log.info("已清除图书列表缓存 (hot/new/page)");
+        } catch (Exception e) {
+            log.warn("清除图书列表缓存异常: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * 清除单本图书详情缓存
+     */
+    private void clearDetailCache(Long bookId) {
+        try {
+            Boolean deleted = redisTemplate.delete(CACHE_KEY_DETAIL + bookId);
+            if (Boolean.TRUE.equals(deleted)) {
+                log.info("已清除图书详情缓存 bookId={}", bookId);
+            }
+        } catch (Exception e) {
+            log.warn("清除图书详情缓存异常: {}", e.getMessage());
+        }
     }
 }
