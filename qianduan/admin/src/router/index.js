@@ -1,5 +1,6 @@
 import Vue from 'vue'
 import VueRouter from 'vue-router'
+import store from '@/store'
 
 Vue.use(VueRouter)
 
@@ -109,8 +110,18 @@ const router = new VueRouter({
 })
 
 router.beforeEach((to, from, next) => {
+  // 设置页面标题
   if (to.meta.title) {
     document.title = to.meta.title + ' - 圣惟书店管理系统'
+  }
+  // 白名单：登录页无需登录即可访问
+  const whiteList = ['/login']
+  if (whiteList.includes(to.path)) {
+    return next()
+  }
+  // 检查登录状态：未登录则跳转登录页
+  if (!store.state.token) {
+    return next('/login')
   }
   next()
 })

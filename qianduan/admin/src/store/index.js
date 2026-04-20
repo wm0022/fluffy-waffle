@@ -4,34 +4,39 @@ import Cookies from 'js-cookie'
 
 Vue.use(Vuex)
 
+// 管理端使用独立前缀的 Cookie Key，避免与客户端(8082)跨端口覆盖冲突
+const TOKEN_KEY = 'admin_token'
+const USER_INFO_KEY = 'admin_userInfo'
+const SIDEBAR_KEY = 'admin_sidebarOpened'
+
 export default new Vuex.Store({
   state: {
-    token: Cookies.get('token') || '',
-    userInfo: JSON.parse(Cookies.get('userInfo') || '{}'),
-    sidebarOpened: Cookies.get('sidebarOpened') !== 'false'
+    token: Cookies.get(TOKEN_KEY) || '',
+    userInfo: JSON.parse(Cookies.get(USER_INFO_KEY) || '{}'),
+    sidebarOpened: Cookies.get(SIDEBAR_KEY) !== 'false'
   },
   mutations: {
     SET_TOKEN(state, token) {
       state.token = token
-      Cookies.set('token', token)
+      Cookies.set(TOKEN_KEY, token)
     },
     SET_USER_INFO(state, userInfo) {
       state.userInfo = userInfo
-      Cookies.set('userInfo', JSON.stringify(userInfo))
+      Cookies.set(USER_INFO_KEY, JSON.stringify(userInfo))
     },
     TOGGLE_SIDEBAR(state) {
       state.sidebarOpened = !state.sidebarOpened
-      Cookies.set('sidebarOpened', state.sidebarOpened)
+      Cookies.set(SIDEBAR_KEY, state.sidebarOpened)
     },
     CLOSE_SIDEBAR(state) {
       state.sidebarOpened = false
-      Cookies.set('sidebarOpened', false)
+      Cookies.set(SIDEBAR_KEY, false)
     },
     LOGOUT(state) {
       state.token = ''
       state.userInfo = {}
-      Cookies.remove('token')
-      Cookies.remove('userInfo')
+      Cookies.remove(TOKEN_KEY)
+      Cookies.remove(USER_INFO_KEY)
     }
   },
   actions: {

@@ -1,4 +1,5 @@
 import axios from 'axios'
+import store from '@/store'
 
 const API_BASE = '/api'
 
@@ -11,8 +12,8 @@ const service = axios.create({
 // 请求拦截器
 service.interceptors.request.use(
   config => {
-    // 可以在这里添加token等
-    const token = localStorage.getItem('token')
+    // 从 Vuex Store 读取 token（Store 数据来源于 Cookie）
+    const token = store.state.token
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`
     }
