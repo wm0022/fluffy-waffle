@@ -317,6 +317,20 @@ export default {
       url: `/menu/tree`,
       method: 'get'
     }),
+    /**
+     * 获取当前登录用户的菜单权限列表（根据角色过滤）
+     */
+    getMyMenus: () => request({
+      url: `/menu/my-menus`,
+      method: 'get'
+    }),
+    /**
+     * 获取当前登录用户的所有权限标识（用于按钮级权限控制）
+     */
+    getMyPerms: () => request({
+      url: `/menu/my-perms`,
+      method: 'get'
+    }),
     save: (data) => request({
       url: `/menu/save`,
       method: 'post',

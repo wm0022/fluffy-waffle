@@ -115,9 +115,28 @@ export default {
           token: res.token,
           userInfo: res.userInfo
         })
-        
+
+        // 登录成功后获取当前用户的菜单权限列表
+        try {
+          const menus = await api.menu.getMyMenus()
+          this.$store.dispatch('setMenus', menus)
+        } catch (e) {
+          console.warn('获取菜单权限失败，使用默认菜单', e)
+        }
+
+        // 获取当前用户的权限标识（用于按钮级控制）
+        try {
+          const perms = await api.menu.getMyPerms()
+          this.$store.dispatch('setPerms', perms)
+        } catch (e) {
+          console.warn('获取权限标识失败', e)
+        }
+
         this.$message.success('登录成功')
-        this.$router.push('/admin/home')
+
+        // 如果有重定向目标则跳回，否则去首页
+        const redirect = this.$route.query.redirect || '/admin/home'
+        this.$router.push(redirect)
       } catch (error) {
         console.error(error)
       } finally {

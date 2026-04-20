@@ -6,6 +6,9 @@ import ElementUI from 'element-ui'
 import 'element-ui/lib/theme-chalk/index.css'
 import './styles/index.scss'
 
+// 注册全局权限指令（按钮级控制）
+import './directive/permission'
+
 Vue.config.productionTip = false
 
 Vue.use(ElementUI, { size: 'medium' })

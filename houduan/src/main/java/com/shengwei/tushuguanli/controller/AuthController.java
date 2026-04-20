@@ -69,23 +69,41 @@ public class AuthController {
     }
 
     /**
-     * 获取当前用户信息
+     * 获取当前登录用户信息（从 JWT Token 中解析）
      */
     @GetMapping("/info")
     public Result<SysUser> getCurrentUser() {
-        return Result.error("未实现");
+        Long userId = com.shengwei.tushuguanli.config.SecurityContext.getCurrentUserId();
+        if (userId == null) {
+            return Result.error(401, "未登录");
+        }
+        SysUser user = userService.getById(userId);
+        // 安全起见，不返回密码字段
+        if (user != null) {
+            user.setPassword(null);
+        }
+        return Result.success(user);
     }
 
     /**
-     * 修改密码
+     * 修改密码（从 Token 获取当前用户，不允许传 userId）
      */
     @PostMapping("/change-password")
     public Result<Void> changePassword(@RequestBody Map<String, Object> params) {
-        Long userId = Long.valueOf(params.get("userId").toString());
+        // 强制使用当前登录用户 ID，不接受前端传入的 userId（防篡改）
+        Long currentUserId = com.shengwei.tushuguanli.config.SecurityContext.getCurrentUserId();
+        if (currentUserId == null) {
+            return Result.error(401, "未登录");
+        }
+
         String oldPassword = (String) params.get("oldPassword");
         String newPassword = (String) params.get("newPassword");
-        
-        SysUser user = userService.getById(userId);
+
+        if (oldPassword == null || newPassword == null || newPassword.length() < 6) {
+            return Result.error("密码格式不正确");
+        }
+
+        SysUser user = userService.getById(currentUserId);
         if (user == null) {
             return Result.error("用户不存在");
         }

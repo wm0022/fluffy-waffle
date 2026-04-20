@@ -38,7 +38,12 @@ public class MybatisPlusConfig implements MetaObjectHandler {
     }
 
     private Long getCurrentUserId() {
-        // TODO: 从安全上下文获取当前用户 ID
-        return 1L;
+        try {
+            Long userId = SecurityContext.getCurrentUserId();
+            return userId != null ? userId : 0L;
+        } catch (IllegalStateException e) {
+            // 非Web请求上下文（如初始化），返回默认值
+            return 0L;
+        }
     }
 }

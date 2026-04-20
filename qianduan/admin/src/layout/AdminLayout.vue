@@ -14,42 +14,16 @@
           active-text-color="#409EFF"
           router
         >
+          <!-- 首页始终置顶显示 -->
           <el-menu-item index="/admin/home">
             <i class="el-icon-house"></i>
             <span slot="title">首页</span>
           </el-menu-item>
-          <el-menu-item index="/admin/role">
-            <i class="el-icon-s-custom"></i>
-            <span slot="title">角色管理</span>
-          </el-menu-item>
-          <el-menu-item index="/admin/member">
-            <i class="el-icon-user"></i>
-            <span slot="title">用户管理</span>
-          </el-menu-item>
-          <el-menu-item index="/admin/book">
-            <i class="el-icon-reading"></i>
-            <span slot="title">图书管理</span>
-          </el-menu-item>
-          <el-menu-item index="/admin/inventory">
-            <i class="el-icon-office-building"></i>
-            <span slot="title">库存管理</span>
-          </el-menu-item>
-          <el-menu-item index="/admin/order">
-            <i class="el-icon-shopping-cart-2"></i>
-            <span slot="title">订单管理</span>
-          </el-menu-item>
-          <el-menu-item index="/admin/donor">
-            <i class="el-icon-s-promotion"></i>
-            <span slot="title">爱心赠书人士</span>
-          </el-menu-item>
-          <el-menu-item index="/admin/donation-manage">
-            <i class="el-icon-document"></i>
-            <span slot="title">捐赠审核</span>
-          </el-menu-item>
-          <el-menu-item index="/admin/review">
-            <i class="el-icon-chat-dot-round"></i>
-            <span slot="title">评价管理</span>
-          </el-menu-item>
+          <!-- 动态菜单：仅从后端 RBAC 权限菜单列表渲染，无权限则不显示 -->
+          <template v-for="menu in menus">
+            <!-- 跳过后端返回中的"首页"条目，避免重复 -->
+            <menu-item v-if="!isHomeMenu(menu)" :key="menu.menuId" :menu="menu" />
+          </template>
         </el-menu>
       </el-aside>
       <el-container>
@@ -85,11 +59,13 @@
 
 <script>
 import { mapGetters } from 'vuex'
+import MenuItem from '@/components/MenuItem'
 
 export default {
   name: 'AdminLayout',
+  components: { MenuItem },
   computed: {
-    ...mapGetters(['userInfo']),
+    ...mapGetters(['userInfo', 'menus']),
     sidebarOpened() {
       return this.$store.state.sidebarOpened
     },
@@ -100,6 +76,14 @@ export default {
   methods: {
     toggleSidebar() {
       this.$store.commit('TOGGLE_SIDEBAR')
+    },
+    /**
+     * 判断菜单项是否为"首页"，用于过滤后端返回的重复首页条目
+     */
+    isHomeMenu(menu) {
+      const name = (menu.menuName || '').trim()
+      const path = (menu.path || '').replace(/^\/+/, '')
+      return name === '首页' || path === 'admin/home' || path === 'home'
     },
     handleCommand(command) {
       if (command === 'logout') {
