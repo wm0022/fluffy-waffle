@@ -52,4 +52,9 @@ public interface InventoryService extends IService<Inventory> {
      * 获取可用库存
      */
     Integer getAvailableStock(Long bookId);
+
+    /**
+     * 根据图书ID查询库存记录
+     */
+    Inventory getInventoryByBookId(Long bookId);
 }

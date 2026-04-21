@@ -50,6 +50,9 @@ public class TradeOrderServiceImpl extends ServiceImpl<TradeOrderMapper, TradeOr
     @Autowired
     private com.shengwei.tushuguanli.mapper.SysUserMapper sysUserMapper;
 
+    @Autowired
+    private com.shengwei.tushuguanli.service.BookInfoService bookInfoService;
+
     @Override
     @Transactional(rollbackFor = Exception.class)
     public TradeOrder createOrder(Long userId, List<CartItemVO> cartItems) {
@@ -158,6 +161,26 @@ public class TradeOrderServiceImpl extends ServiceImpl<TradeOrderMapper, TradeOr
                         inventoryService.confirmDeduction(item.getBookId(), item.getQuantity());
                     } catch (Exception e) {
                         System.out.println("扣减锁定库存异常: " + e.getMessage());
+                    }
+                }
+
+                // 同步更新 book_info 表的库存和销量
+                for (TradeOrderItem item : orderItems) {
+                    try {
+                        com.shengwei.tushuguanli.entity.BookInfo bookInfo = bookInfoService.getById(item.getBookId());
+                        if (bookInfo != null) {
+                            // 库存：与 inventory.stockQuantity 保持同步
+                            com.shengwei.tushuguanli.entity.Inventory inv = inventoryService.getInventoryByBookId(item.getBookId());
+                            if (inv != null) {
+                                bookInfo.setStockCount(inv.getStockQuantity());
+                            }
+                            // 销量：累计增加
+                            int oldSales = bookInfo.getSalesVolume() != null ? bookInfo.getSalesVolume() : 0;
+                            bookInfo.setSalesVolume(oldSales + item.getQuantity());
+                            bookInfoService.updateById(bookInfo);
+                        }
+                    } catch (Exception e) {
+                        System.out.println("同步book_info库存/销量异常, bookId=" + item.getBookId() + ": " + e.getMessage());
                     }
                 }
             } catch (Exception e) {
@@ -313,6 +336,22 @@ public class TradeOrderServiceImpl extends ServiceImpl<TradeOrderMapper, TradeOr
             for (TradeOrderItem item : orderItems) {
                 inventoryService.releaseStock(item.getBookId(), item.getQuantity());
             }
+
+            // 同步恢复 book_info 表的库存
+            for (TradeOrderItem item : orderItems) {
+                try {
+                    com.shengwei.tushuguanli.entity.BookInfo bookInfo = bookInfoService.getById(item.getBookId());
+                    if (bookInfo != null) {
+                        com.shengwei.tushuguanli.entity.Inventory inv = inventoryService.getInventoryByBookId(item.getBookId());
+                        if (inv != null) {
+                            bookInfo.setStockCount(inv.getStockQuantity());
+                            bookInfoService.updateById(bookInfo);
+                        }
+                    }
+                } catch (Exception e) {
+                    System.out.println("取消订单同步book_info库存异常: " + e.getMessage());
+                }
+            }
         } catch (Exception e) {
             System.out.println("取消订单释放库存异常: " + e.getMessage());
         }
@@ -430,6 +469,25 @@ public class TradeOrderServiceImpl extends ServiceImpl<TradeOrderMapper, TradeOr
                         inventoryService.releaseStock(item.getBookId(), item.getQuantity());
                     } catch (Exception e) {
                         System.out.println("释放锁定库存异常: " + e.getMessage());
+                    }
+                }
+
+                // 同步更新 book_info 表：恢复库存、扣减销量
+                for (TradeOrderItem item : orderItems) {
+                    try {
+                        com.shengwei.tushuguanli.entity.BookInfo bookInfo = bookInfoService.getById(item.getBookId());
+                        if (bookInfo != null) {
+                            com.shengwei.tushuguanli.entity.Inventory inv = inventoryService.getInventoryByBookId(item.getBookId());
+                            if (inv != null) {
+                                bookInfo.setStockCount(inv.getStockQuantity());
+                            }
+                            // 退款成功，销量回退
+                            int oldSales = bookInfo.getSalesVolume() != null ? bookInfo.getSalesVolume() : 0;
+                            bookInfo.setSalesVolume(Math.max(0, oldSales - item.getQuantity()));
+                            bookInfoService.updateById(bookInfo);
+                        }
+                    } catch (Exception e) {
+                        System.out.println("退款同步book_info异常: " + e.getMessage());
                     }
                 }
             }

@@ -58,5 +58,9 @@ public class BookInfo {
 
     private Integer isDonation;
 
+    private Integer isHot;
+
+    private Integer isNew;
+
     private LocalDateTime createTime;
 }

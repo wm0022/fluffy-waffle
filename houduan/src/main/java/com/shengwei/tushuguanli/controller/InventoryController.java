@@ -337,6 +337,21 @@ public class InventoryController {
                 } else if (diff < 0) {
                     inventoryService.decreaseStock(existing.getBookId(), Math.abs(diff));
                 }
+
+                // 同步更新 book_info 表的库存
+                try {
+                    BookInfo bookInfo = bookInfoMapper.selectById(existing.getBookId());
+                    if (bookInfo != null) {
+                        // 重新获取更新后的库存值
+                        Inventory updatedInv = inventoryService.getInventoryByBookId(existing.getBookId());
+                        if (updatedInv != null) {
+                            bookInfo.setStockCount(updatedInv.getStockQuantity());
+                            bookInfoMapper.updateById(bookInfo);
+                        }
+                    }
+                } catch (Exception e) {
+                    System.out.println("同步book_info库存异常: " + e.getMessage());
+                }
             }
             inventoryService.updateById(existing);
         }

@@ -68,6 +68,22 @@ public class BookInfoServiceImpl extends ServiceImpl<BookInfoMapper, BookInfo> i
     // ==================== 查询方法（带缓存） ====================
 
     /**
+     * 用 inventory 表的真实库存覆盖 bookInfo 的 stockCount，确保两模块数据一致
+     */
+    private void syncStockFromInventory(BookInfo bookInfo) {
+        if (bookInfo != null && bookInfo.getId() != null) {
+            try {
+                Inventory inv = inventoryService.getInventoryByBookId(bookInfo.getId());
+                if (inv != null) {
+                    bookInfo.setStockCount(inv.getStockQuantity());
+                }
+            } catch (Exception e) {
+                log.warn("同步库存异常, bookId={}: {}", bookInfo.getId(), e.getMessage());
+            }
+        }
+    }
+
+    /**
      * 重写 getById，加入 Redis 缓存（图书详情页高频接口）
      */
     @Override
@@ -87,8 +103,9 @@ public class BookInfoServiceImpl extends ServiceImpl<BookInfoMapper, BookInfo> i
         // 缓存未命中，查库
         BookInfo bookInfo = super.getById(id);
 
-        // 存在才写入缓存
+        // 存在才写入缓存 + 同步库存
         if (bookInfo != null) {
+            syncStockFromInventory(bookInfo);
             try {
                 redisTemplate.opsForValue().set(cacheKey, bookInfo, DETAIL_CACHE_TTL, TimeUnit.SECONDS);
                 log.debug("图书详情已写入缓存 key={}, ttl={}s", cacheKey, DETAIL_CACHE_TTL);
@@ -172,7 +189,10 @@ public class BookInfoServiceImpl extends ServiceImpl<BookInfoMapper, BookInfo> i
         } else {
             wrapper.orderByDesc(BookInfo::getCreateTime);
         }
-        return page(page, wrapper);
+        Page<BookInfo> result = page(page, wrapper);
+        // 分页列表每条记录同步 inventory 真实库存，保证与库存管理一致
+        result.getRecords().forEach(this::syncStockFromInventory);
+        return result;
     }
 
     @Override
@@ -195,6 +215,7 @@ public class BookInfoServiceImpl extends ServiceImpl<BookInfoMapper, BookInfo> i
                .orderByDesc(BookInfo::getSalesVolume)
                .last("LIMIT " + limit);
         List<BookInfo> books = list(wrapper);
+        books.forEach(this::syncStockFromInventory);
 
         // 写入缓存
         try {
@@ -227,6 +248,7 @@ public class BookInfoServiceImpl extends ServiceImpl<BookInfoMapper, BookInfo> i
                .orderByDesc(BookInfo::getShelfTime)
                .last("LIMIT " + limit);
         List<BookInfo> books = list(wrapper);
+        books.forEach(this::syncStockFromInventory);
 
         // 写入缓存
         try {
@@ -282,6 +304,22 @@ public class BookInfoServiceImpl extends ServiceImpl<BookInfoMapper, BookInfo> i
             BookInfo isbnExist = getByIsbn(newIsbn);
             if (isbnExist != null && !isbnExist.getId().equals(bookInfo.getId())) {
                 throw new BusinessException("该 ISBN 已被其他图书使用");
+            }
+        }
+
+        // 库存双向同步：检测 stockCount 变化并同步到 inventory 表
+        Integer oldStock = existBook.getStockCount();
+        Integer newStock = bookInfo.getStockCount();
+        if (newStock != null && oldStock != null && !oldStock.equals(newStock)) {
+            int diff = newStock - oldStock;
+            try {
+                if (diff > 0) {
+                    inventoryService.increaseStock(bookInfo.getId(), diff);
+                } else {
+                    inventoryService.decreaseStock(bookInfo.getId(), Math.abs(diff));
+                }
+            } catch (Exception e) {
+                log.warn("同步inventory表库存异常, bookId={}: {}", bookInfo.getId(), e.getMessage());
             }
         }
 

@@ -136,7 +136,8 @@ public class InventoryServiceImpl extends ServiceImpl<InventoryMapper, Inventory
         return inventory != null ? inventory.getAvailableQuantity() : 0;
     }
 
-    private Inventory getInventoryByBookId(Long bookId) {
+    @Override
+    public Inventory getInventoryByBookId(Long bookId) {
         LambdaQueryWrapper<Inventory> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(Inventory::getBookId, bookId)
                 .eq(Inventory::getWarehouseCode, "DEFAULT");

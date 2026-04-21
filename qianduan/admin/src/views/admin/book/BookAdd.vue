@@ -5,7 +5,7 @@
         <span>添加图书</span>
         <el-button style="float: right; padding: 3px 0" type="text" @click="goBack">返回</el-button>
       </div>
-      
+
       <el-form
         ref="bookForm"
         :model="bookForm"
@@ -24,7 +24,7 @@
             </el-form-item>
           </el-col>
         </el-row>
-        
+
         <el-row>
           <el-col :span="12">
             <el-form-item label="作者" prop="author">
@@ -32,12 +32,12 @@
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="译者">
-              <el-input v-model="bookForm.translator" placeholder="请输入译者" />
+            <el-form-item label="编者">
+              <el-input v-model="bookForm.editor" placeholder="请输入编者/译者" />
             </el-form-item>
           </el-col>
         </el-row>
-        
+
         <el-row>
           <el-col :span="12">
             <el-form-item label="出版社" prop="publisher">
@@ -56,11 +56,11 @@
             </el-form-item>
           </el-col>
         </el-row>
-        
+
         <el-row>
           <el-col :span="12">
             <el-form-item label="版次">
-              <el-input v-model="bookForm.edition" placeholder="请输入版次" />
+              <el-input v-model="bookForm.edition" placeholder="如：第1版" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -75,72 +75,25 @@
             </el-form-item>
           </el-col>
         </el-row>
-        
+
         <el-row>
-          <el-col :span="12">
-            <el-form-item label="定价" prop="price">
-              <el-input-number v-model="bookForm.price" :min="0" :precision="2" style="width: 100%" />
+          <el-col :span="8">
+            <el-form-item label="定价" prop="originalPrice">
+              <el-input-number v-model="bookForm.originalPrice" :min="0" :precision="2" style="width: 100%" />
             </el-form-item>
           </el-col>
-          <el-col :span="12">
-            <el-form-item label="销售价">
-              <el-input-number v-model="bookForm.salePrice" :min="0" :precision="2" style="width: 100%" />
+          <el-col :span="8">
+            <el-form-item label="售价" prop="sellingPrice">
+              <el-input-number v-model="bookForm.sellingPrice" :min="0" :precision="2" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="折扣">
+              <el-input-number v-model="bookForm.discount" :min="0" :max="10" :precision="2" :step="0.1" style="width: 100%" />
             </el-form-item>
           </el-col>
         </el-row>
-        
-        <el-row>
-          <el-col :span="12">
-            <el-form-item label="销量">
-              <el-input-number v-model="bookForm.salesVolume" :min="0" style="width: 100%" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="上架时间">
-              <el-date-picker
-                v-model="bookForm.shelfTime"
-                type="datetime"
-                placeholder="选择上架时间"
-                style="width: 100%"
-                value-format="yyyy-MM-dd HH:mm:ss"
-              />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        
-        <el-row>
-          <el-col :span="12">
-            <el-form-item label="字数">
-              <el-input-number v-model="bookForm.wordCount" :min="0" style="width: 100%" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="页数">
-              <el-input-number v-model="bookForm.pageCount" :min="0" style="width: 100%" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        
-        <el-row>
-          <el-col :span="12">
-            <el-form-item label="装帧">
-              <el-select v-model="bookForm.binding" placeholder="请选择装帧">
-                <el-option label="平装" value="平装" />
-                <el-option label="精装" value="精装" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="语言">
-              <el-select v-model="bookForm.language" placeholder="请选择语言">
-                <el-option label="中文" value="中文" />
-                <el-option label="英文" value="英文" />
-                <el-option label="其他" value="其他" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        
+
         <el-row>
           <el-col :span="12">
             <el-form-item label="库存数量" prop="stockCount">
@@ -148,12 +101,15 @@
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="预警库存">
-              <el-input-number v-model="bookForm.warningStock" :min="0" style="width: 100%" />
+            <el-form-item label="上架状态">
+              <el-radio-group v-model="bookForm.shelfStatus">
+                <el-radio :label="1">上架</el-radio>
+                <el-radio :label="0">下架</el-radio>
+              </el-radio-group>
             </el-form-item>
           </el-col>
         </el-row>
-        
+
         <el-row>
           <el-col :span="24">
             <el-form-item label="图书封面">
@@ -187,42 +143,34 @@
             </el-form-item>
           </el-col>
         </el-row>
-        
+
         <el-row>
-          <el-col :span="12">
+          <el-col :span="8">
             <el-form-item label="是否热销">
               <el-radio-group v-model="bookForm.isHot">
-                <el-radio :label="1">是</el-radio>
-                <el-radio :label="0">否</el-radio>
+                <el-radio label="1">是</el-radio>
+                <el-radio label="0">否</el-radio>
               </el-radio-group>
             </el-form-item>
           </el-col>
-          <el-col :span="12">
+          <el-col :span="8">
             <el-form-item label="是否新品">
               <el-radio-group v-model="bookForm.isNew">
-                <el-radio :label="1">是</el-radio>
-                <el-radio :label="0">否</el-radio>
+                <el-radio label="1">是</el-radio>
+                <el-radio label="0">否</el-radio>
               </el-radio-group>
             </el-form-item>
           </el-col>
-        </el-row>
-        
-        <el-row>
-          <el-col :span="12">
+          <el-col :span="8">
             <el-form-item label="是否捐赠图书">
               <el-radio-group v-model="bookForm.isDonation">
-                <el-radio :label="1">是</el-radio>
-                <el-radio :label="0">否</el-radio>
+                <el-radio label="1">是</el-radio>
+                <el-radio label="0">否</el-radio>
               </el-radio-group>
             </el-form-item>
           </el-col>
-          <el-col :span="12">
-            <el-form-item label="捐赠折扣">
-              <el-input-number v-model="bookForm.donationDiscount" :min="0" :max="10" :precision="2" :step="0.1" style="width: 100%" />
-            </el-form-item>
-          </el-col>
         </el-row>
-        
+
         <el-form-item>
           <el-button type="primary" :loading="submitLoading" @click="handleSubmit">提交</el-button>
           <el-button @click="goBack">取消</el-button>
@@ -243,27 +191,21 @@ export default {
         isbn: '',
         bookName: '',
         author: '',
-        translator: '',
+        editor: '',
         publisher: '',
         publishDate: '',
         edition: '',
         printDate: '',
-        price: 0,
-        salePrice: 0,
-        salesVolume: 0,
-        shelfTime: '',
-        wordCount: 0,
-        pageCount: 0,
-        binding: '平装',
-        language: '中文',
+        originalPrice: null,
+        sellingPrice: null,
+        discount: null,
         stockCount: 0,
-        warningStock: 10,
+        shelfStatus: 1,
         coverImage: '',
         description: '',
-        isHot: 0,
-        isNew: 0,
-        isDonation: 0,
-        donationDiscount: 1.00
+        isHot: '0',
+        isNew: '0',
+        isDonation: '0'
       },
       bookRules: {
         isbn: [
@@ -278,8 +220,11 @@ export default {
         publisher: [
           { required: true, message: '请输入出版社', trigger: 'blur' }
         ],
-        price: [
+        originalPrice: [
           { required: true, message: '请输入定价', trigger: 'blur' }
+        ],
+        sellingPrice: [
+          { required: true, message: '请输入售价', trigger: 'blur' }
         ],
         stockCount: [
           { required: true, message: '请输入库存数量', trigger: 'blur' }
@@ -293,33 +238,29 @@ export default {
       try {
         await this.$refs.bookForm.validate()
         this.submitLoading = true
-        
-        // 获取当前时间作为上架时间（如果未填写）
-        const now = new Date()
-        const shelfTime = this.bookForm.shelfTime || now.toISOString().slice(0, 19).replace('T', ' ')
-        
+
         const submitData = {
+          isbn: this.bookForm.isbn,
           bookName: this.bookForm.bookName,
           author: this.bookForm.author,
-          editor: this.bookForm.translator || '',
+          editor: this.bookForm.editor || null,
           publisher: this.bookForm.publisher,
           publishDate: this.bookForm.publishDate || null,
-          edition: this.bookForm.edition || '',
+          edition: this.bookForm.edition || null,
           printDate: this.bookForm.printDate || null,
-          isbn: this.bookForm.isbn,
-          categoryId: this.bookForm.categoryId || null,
-          originalPrice: this.bookForm.price || 0,
-          sellingPrice: this.bookForm.salePrice || this.bookForm.price || 0,
-          discount: this.bookForm.donationDiscount || null,
+          originalPrice: this.bookForm.originalPrice,
+          sellingPrice: this.bookForm.sellingPrice,
+          discount: this.bookForm.discount,
           stockCount: this.bookForm.stockCount || 0,
-          salesVolume: this.bookForm.salesVolume || 0,
-          shelfStatus: 1,
-          shelfTime: shelfTime,
+          shelfStatus: this.bookForm.shelfStatus,
+          shelfTime: new Date().toISOString().slice(0, 19).replace('T', ' '),
           coverImage: this.bookForm.coverImage || '',
           description: this.bookForm.description || '',
-          isDonation: this.bookForm.isDonation || 0
+          isDonation: parseInt(this.bookForm.isDonation) || 0,
+          isHot: parseInt(this.bookForm.isHot) || 0,
+          isNew: parseInt(this.bookForm.isNew) || 0
         }
-        
+
         await api.book.add(submitData)
         this.$message.success('添加成功')
         this.goBack()
@@ -348,10 +289,9 @@ export default {
     async uploadCover(file) {
       const formData = new FormData()
       formData.append('file', file.file)
-      
+
       try {
         const res = await api.upload.bookCover(formData)
-        // 使用完整的后端URL
         this.bookForm.coverImage = 'http://localhost:8080/api' + res.url
         this.$message.success('封面上传成功')
       } catch (error) {
@@ -368,10 +308,10 @@ export default {
   .el-card {
     margin-bottom: 20px;
   }
-  
+
   .cover-uploader {
     width: 100%;
-    
+
     ::v-deep .el-upload {
       border: 1px dashed #d9d9d9;
       border-radius: 6px;
@@ -379,17 +319,17 @@ export default {
       position: relative;
       overflow: hidden;
       width: 100%;
-      
+
       &:hover {
         border-color: #409EFF;
       }
     }
-    
+
     .cover-icon {
       font-size: 28px;
       color: #8c939d;
     }
-    
+
     .cover-image {
       width: 200px;
       height: 300px;
