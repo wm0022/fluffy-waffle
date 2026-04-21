@@ -30,7 +30,27 @@ public interface TradeOrderService extends IService<TradeOrder> {
     /**
      * 获取所有订单（管理员）
      */
-    List<Map<String, Object>> getAllOrders();
+    List<Map<String, Object>> getAllOrders(String orderNo, Integer status);
+
+    /**
+     * 获取订单详情（含明细）
+     */
+    Map<String, Object> getOrderDetail(Long orderId);
+
+    /**
+     * 发货
+     */
+    void shipOrder(Long orderId);
+
+    /**
+     * 完成订单
+     */
+    void completeOrder(Long orderId);
+
+    /**
+     * 取消待支付订单
+     */
+    void cancelOrder(String orderNo);
 
     /**
      * 申请退款
@@ -46,6 +66,11 @@ public interface TradeOrderService extends IService<TradeOrder> {
      * 获取所有退款申请（管理员）
      */
     List<TradeOrderRefund> getAllRefundList(Integer status);
+
+    /**
+     * 筛选退款列表（支持多条件）
+     */
+    List<TradeOrderRefund> getFilteredRefundList(Long userId, String orderNo, Integer status);
 
     /**
      * 处理退款申请

@@ -73,9 +73,9 @@ jwt:
   header: Authorization
   prefix: Bearer
 
-# 文件上传路径配置
+# 文件上传路径配置（使用后端独立目录，避免前端重建时丢失）
 upload:
-  path: d:/java/waibao/tushuguanli/qianduan/user/public/uploads
+  path: ./uploads
 
 # 日志配置
 logging:

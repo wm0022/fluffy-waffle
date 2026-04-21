@@ -39,7 +39,8 @@ public class WebConfig implements WebMvcConfigurer {
             "/book/count",      // 图书统计
             "/book/isbn/",     // ISBN 查询（含路径变量）
             "/donation/all",    // 捐赠公示
-            "/donation/count"   // 捐赠统计
+            "/donation/count",  // 捐赠统计
+            "/uploads/**"       // 静态资源（图书封面等图片）免认证
     );
 
     @Override

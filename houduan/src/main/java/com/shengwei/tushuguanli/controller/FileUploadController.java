@@ -5,13 +5,12 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.nio.file.StandardCopyOption;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -26,6 +25,33 @@ public class FileUploadController {
 
     @Value("${upload.path:./uploads}")
     private String uploadPath;
+
+    /**
+     * 获取上传根目录的绝对路径
+     */
+    private Path getUploadRootPath() {
+        Path path = Paths.get(uploadPath).toAbsolutePath().normalize();
+        return path;
+    }
+
+    /**
+     * 安全创建目录（递归创建所有缺失的父级目录）
+     */
+    private void ensureDirectoryExists(Path dir) throws IOException {
+        if (!Files.exists(dir)) {
+            Files.createDirectories(dir);
+        }
+    }
+
+    /**
+     * 安全写入文件：使用 try-with-resources 确保 InputStream 关闭，
+     * 避免 Tomcat 临时文件被锁定导致删除失败
+     */
+    private void safeTransfer(MultipartFile file, Path targetPath) throws IOException {
+        try (InputStream is = file.getInputStream()) {
+            Files.copy(is, targetPath, StandardCopyOption.REPLACE_EXISTING);
+        }
+    }
 
     /**
      * 上传图书封面
@@ -43,20 +69,19 @@ public class FileUploadController {
         }
 
         try {
-            // 创建上传目录
-            String bookUploadPath = uploadPath + "/books";
-            Path uploadDir = Paths.get(bookUploadPath);
-            if (!Files.exists(uploadDir)) {
-                Files.createDirectories(uploadDir);
-            }
+            // 获取上传根目录的绝对路径
+            Path rootPath = getUploadRootPath();
+            Path uploadDir = rootPath.resolve("books");
+            // 递归创建所有缺失的父级目录
+            ensureDirectoryExists(uploadDir);
 
             // 生成文件名
             String fileExtension = originalFilename.substring(originalFilename.lastIndexOf("."));
             String fileName = "book_" + UUID.randomUUID().toString().replace("-", "") + fileExtension;
             
-            // 保存文件
+            // 保存文件（使用 Files.copy 避免 transferTo 的 FileNotFoundException）
             Path filePath = uploadDir.resolve(fileName);
-            file.transferTo(filePath.toFile());
+            safeTransfer(file, filePath);
 
             // 返回访问路径
             Map<String, String> result = new HashMap<>();
@@ -83,12 +108,11 @@ public class FileUploadController {
         }
 
         try {
-            // 创建上传目录
-            String typeUploadPath = uploadPath + "/" + type;
-            Path uploadDir = Paths.get(typeUploadPath);
-            if (!Files.exists(uploadDir)) {
-                Files.createDirectories(uploadDir);
-            }
+            // 获取上传根目录的绝对路径
+            Path rootPath = getUploadRootPath();
+            Path uploadDir = rootPath.resolve(type);
+            // 递归创建所有缺失的父级目录
+            ensureDirectoryExists(uploadDir);
 
             // 生成文件名
             String originalFilename = file.getOriginalFilename();
@@ -97,9 +121,9 @@ public class FileUploadController {
             String fileName = type + "_" + System.currentTimeMillis() + 
                 "_" + UUID.randomUUID().toString().replace("-", "") + fileExtension;
             
-            // 保存文件
+            // 保存文件（使用 Files.copy 避免 transferTo 的 FileNotFoundException）
             Path filePath = uploadDir.resolve(fileName);
-            file.transferTo(filePath.toFile());
+            safeTransfer(file, filePath);
 
             // 返回访问路径
             Map<String, String> result = new HashMap<>();

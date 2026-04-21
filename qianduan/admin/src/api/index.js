@@ -102,14 +102,26 @@ export default {
     })
   },
   order: {
-    pageList: (params) => request({
-      url: `/order/list`,
+    list: (params) => request({
+      url: `/order/all`,
       method: 'get',
       params
     }),
-    getById: (id) => request({
-      url: `/order/${id}`,
+    getDetail: (id) => request({
+      url: `/order/detail/${id}`,
       method: 'get'
+    }),
+    ship: (id) => request({
+      url: `/order/ship/${id}`,
+      method: 'put'
+    }),
+    complete: (id) => request({
+      url: `/order/complete/${id}`,
+      method: 'put'
+    }),
+    cancel: (orderNo) => request({
+      url: `/order/cancel/${orderNo}`,
+      method: 'put'
     }),
     refundList: (params) => request({
       url: `/order/refund/list`,

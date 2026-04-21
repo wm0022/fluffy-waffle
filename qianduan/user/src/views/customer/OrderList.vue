@@ -169,7 +169,7 @@ export default {
         return
       }
       try {
-        await api.order.applyRefund(this.currentOrder.orderNo, this.refundReason)
+        await api.order.applyRefund(this.currentOrder.orderNo, this.refundReason, this.userId)
         this.$message.success('退款申请已提交')
         this.refundDialogVisible = false
         this.loadOrders()

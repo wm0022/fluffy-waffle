@@ -163,10 +163,10 @@ export default {
       method: 'post',
       data: { orderNo }
     }),
-    applyRefund: (orderNo, reason) => request({
+    applyRefund: (orderNo, reason, userId) => request({
       url: `/order/refund/apply`,
       method: 'post',
-      data: { orderNo, reason }
+      data: { orderNo, reason, userId }
     }),
     getRefundList: (userId, params) => request({
       url: `/order/refund/list`,

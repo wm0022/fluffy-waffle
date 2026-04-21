@@ -193,10 +193,17 @@ public class TradeOrderServiceImpl extends ServiceImpl<TradeOrderMapper, TradeOr
     }
 
     @Override
-    public List<Map<String, Object>> getAllOrders() {
-        List<TradeOrder> orders = list(new LambdaQueryWrapper<TradeOrder>()
-                .orderByDesc(TradeOrder::getCreateTime));
-        
+    public List<Map<String, Object>> getAllOrders(String orderNo, Integer status) {
+        LambdaQueryWrapper<TradeOrder> wrapper = new LambdaQueryWrapper<TradeOrder>();
+        if (orderNo != null && !orderNo.isEmpty()) {
+            wrapper.like(TradeOrder::getOrderNo, orderNo);
+        }
+        if (status != null) {
+            wrapper.eq(TradeOrder::getStatus, status);
+        }
+        wrapper.orderByDesc(TradeOrder::getCreateTime);
+        List<TradeOrder> orders = list(wrapper);
+
         List<Map<String, Object>> result = new ArrayList<>();
         for (TradeOrder order : orders) {
             Map<String, Object> map = new HashMap<>();
@@ -208,7 +215,7 @@ public class TradeOrderServiceImpl extends ServiceImpl<TradeOrderMapper, TradeOr
             map.put("status", order.getStatus());
             map.put("paymentTime", order.getPaymentTime());
             map.put("createTime", order.getCreateTime());
-            
+
             List<TradeOrderRefund> refunds = refundMapper.selectByOrderNo(order.getOrderNo());
             if (!refunds.isEmpty()) {
                 TradeOrderRefund lastRefund = refunds.get(refunds.size() - 1);
@@ -218,8 +225,88 @@ public class TradeOrderServiceImpl extends ServiceImpl<TradeOrderMapper, TradeOr
             }
             result.add(map);
         }
-        
+
         return result;
+    }
+
+    @Override
+    public Map<String, Object> getOrderDetail(Long orderId) {
+        TradeOrder order = getById(orderId);
+        if (order == null) {
+            throw new BusinessException("订单不存在");
+        }
+        List<TradeOrderItem> items = orderItemMapper.selectList(
+                new LambdaQueryWrapper<TradeOrderItem>().eq(TradeOrderItem::getOrderId, orderId));
+
+        Map<String, Object> detail = new HashMap<>();
+        detail.put("order", order);
+        detail.put("items", items);
+
+        List<TradeOrderRefund> refunds = refundMapper.selectByOrderNo(order.getOrderNo());
+        detail.put("refunds", refunds.isEmpty() ? null : refunds);
+        return detail;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void shipOrder(Long orderId) {
+        TradeOrder order = getById(orderId);
+        if (order == null) {
+            throw new BusinessException("订单不存在");
+        }
+        if (order.getStatus() != 1) {
+            throw new BusinessException("只有已支付的订单才能发货");
+        }
+        TradeOrder updateEntity = new TradeOrder();
+        updateEntity.setId(orderId);
+        updateEntity.setStatus(2); // 2-已发货
+        updateEntity.setUpdateTime(LocalDateTime.now());
+        updateById(updateEntity);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void completeOrder(Long orderId) {
+        TradeOrder order = getById(orderId);
+        if (order == null) {
+            throw new BusinessException("订单不存在");
+        }
+        if (order.getStatus() != 2) {
+            throw new BusinessException("只有已发货的订单才能完成");
+        }
+        TradeOrder updateEntity = new TradeOrder();
+        updateEntity.setId(orderId);
+        updateEntity.setStatus(3); // 3-已完成
+        updateEntity.setUpdateTime(LocalDateTime.now());
+        updateById(updateEntity);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void cancelOrder(String orderNo) {
+        TradeOrder order = getOne(new LambdaQueryWrapper<TradeOrder>()
+                .eq(TradeOrder::getOrderNo, orderNo));
+        if (order == null) {
+            throw new BusinessException("订单不存在");
+        }
+        if (order.getStatus() != 0) {
+            throw new BusinessException("只有待支付的订单才能取消");
+        }
+        // 释放锁定库存
+        try {
+            List<TradeOrderItem> orderItems = orderItemMapper.selectList(
+                    new LambdaQueryWrapper<TradeOrderItem>().eq(TradeOrderItem::getOrderId, order.getId()));
+            for (TradeOrderItem item : orderItems) {
+                inventoryService.releaseStock(item.getBookId(), item.getQuantity());
+            }
+        } catch (Exception e) {
+            System.out.println("取消订单释放库存异常: " + e.getMessage());
+        }
+        TradeOrder updateEntity = new TradeOrder();
+        updateEntity.setId(order.getId());
+        updateEntity.setStatus(4); // 4-已取消
+        updateEntity.setUpdateTime(LocalDateTime.now());
+        updateById(updateEntity);
     }
 
     /**
@@ -274,10 +361,23 @@ public class TradeOrderServiceImpl extends ServiceImpl<TradeOrderMapper, TradeOr
 
     @Override
     public List<TradeOrderRefund> getAllRefundList(Integer status) {
-        if (status != null && status >= 0) {
-            return refundMapper.selectAllWithStatus(status);
+        return getFilteredRefundList(null, null, status);
+    }
+
+    @Override
+    public List<TradeOrderRefund> getFilteredRefundList(Long userId, String orderNo, Integer status) {
+        LambdaQueryWrapper<TradeOrderRefund> wrapper = new LambdaQueryWrapper<>();
+        if (userId != null) {
+            wrapper.eq(TradeOrderRefund::getUserId, userId);
         }
-        return refundMapper.selectList(null);
+        if (orderNo != null && !orderNo.isEmpty()) {
+            wrapper.like(TradeOrderRefund::getOrderNo, orderNo);
+        }
+        if (status != null && status >= 0) {
+            wrapper.eq(TradeOrderRefund::getStatus, status);
+        }
+        wrapper.orderByDesc(TradeOrderRefund::getCreateTime);
+        return refundMapper.selectList(wrapper);
     }
 
     @Override

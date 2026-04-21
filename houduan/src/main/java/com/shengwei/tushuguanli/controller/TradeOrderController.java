@@ -60,9 +60,35 @@ public class TradeOrderController {
     }
 
     @GetMapping("/all")
-    public Result<List<Map<String, Object>>> getAllOrders() {
-        List<Map<String, Object>> orders = orderService.getAllOrders();
+    public Result<List<Map<String, Object>>> getAllOrders(
+            @RequestParam(required = false) String orderNo,
+            @RequestParam(required = false) Integer status) {
+        List<Map<String, Object>> orders = orderService.getAllOrders(orderNo, status);
         return Result.success(orders);
+    }
+
+    @GetMapping("/detail/{id}")
+    public Result<Map<String, Object>> getOrderDetail(@PathVariable Long id) {
+        Map<String, Object> detail = orderService.getOrderDetail(id);
+        return Result.success(detail);
+    }
+
+    @PutMapping("/ship/{orderId}")
+    public Result<Void> shipOrder(@PathVariable Long orderId) {
+        orderService.shipOrder(orderId);
+        return Result.success("发货成功");
+    }
+
+    @PutMapping("/complete/{orderId}")
+    public Result<Void> completeOrder(@PathVariable Long orderId) {
+        orderService.completeOrder(orderId);
+        return Result.success("订单已完成");
+    }
+
+    @PutMapping("/cancel/{orderNo}")
+    public Result<Void> cancelOrder(@PathVariable String orderNo) {
+        orderService.cancelOrder(orderNo);
+        return Result.success("订单已取消");
     }
 
     @PostMapping("/refund/apply")
@@ -75,14 +101,12 @@ public class TradeOrderController {
     }
 
     @GetMapping("/refund/list")
-    public Result<List<TradeOrderRefund>> getRefundList(@RequestParam(required = false) Long userId) {
-        if (userId != null) {
-            List<TradeOrderRefund> refundList = orderService.getRefundList(userId);
-            return Result.success(refundList);
-        } else {
-            List<TradeOrderRefund> refundList = orderService.getAllRefundList(null);
-            return Result.success(refundList);
-        }
+    public Result<List<TradeOrderRefund>> getRefundList(
+            @RequestParam(required = false) Long userId,
+            @RequestParam(required = false) String orderNo,
+            @RequestParam(required = false) Integer status) {
+        List<TradeOrderRefund> refundList = orderService.getFilteredRefundList(userId, orderNo, status);
+        return Result.success(refundList);
     }
 
     @PostMapping("/refund/handle")
