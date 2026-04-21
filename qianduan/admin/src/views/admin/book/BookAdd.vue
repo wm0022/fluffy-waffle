@@ -233,6 +233,11 @@ export default {
       submitLoading: false
     }
   },
+  created() {
+    if (this.$route.query.donation === '1') {
+      this.bookForm.isDonation = '1'
+    }
+  },
   methods: {
     async handleSubmit() {
       try {
@@ -272,7 +277,8 @@ export default {
       }
     },
     goBack() {
-      this.$router.back()
+      const query = this.bookForm.isDonation === '1' ? { donation: '1' } : {}
+      this.$router.push({ path: '/admin/book', query })
     },
     beforeCoverUpload(file) {
       const isImage = file.type === 'image/jpeg' || file.type === 'image/png' || file.type === 'image/gif'
