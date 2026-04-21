@@ -71,7 +71,7 @@ const routes = [
       {
         path: 'donor',
         name: 'Donor',
-        component: () => import('@/views/admin/donation/PersonManage.vue'),
+        component: () => import('@/views/admin/donation/DonorManage.vue'),
         meta: { title: '爱心赠书人士管理', requireAdmin: true }
       },
       {

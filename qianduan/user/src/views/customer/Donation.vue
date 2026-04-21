@@ -152,7 +152,11 @@ export default {
   computed: {
     ...mapGetters(['userInfo']),
     userId() {
-      return this.userInfo.id || 1
+      const id = this.userInfo && this.userInfo.id
+      if (!id) {
+        console.warn('[Donation] userInfo 未加载或 id 缺失，捐赠操作可能异常')
+      }
+      return id || null
     }
   },
   watch: {
@@ -200,7 +204,7 @@ export default {
     },
     async loadRecords() {
       try {
-        const res = await api.donation.myList(1)
+        const res = await api.donation.myList(this.userId)
         this.donationRecords = res || []
       } catch (error) {
         console.error('加载记录失败:', error)
