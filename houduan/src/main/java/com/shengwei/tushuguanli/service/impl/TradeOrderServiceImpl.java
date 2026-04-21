@@ -47,6 +47,9 @@ public class TradeOrderServiceImpl extends ServiceImpl<TradeOrderMapper, TradeOr
     @Autowired
     private UserService userService;
 
+    @Autowired
+    private com.shengwei.tushuguanli.mapper.SysUserMapper sysUserMapper;
+
     @Override
     @Transactional(rollbackFor = Exception.class)
     public TradeOrder createOrder(Long userId, List<CartItemVO> cartItems) {
@@ -238,9 +241,20 @@ public class TradeOrderServiceImpl extends ServiceImpl<TradeOrderMapper, TradeOr
         List<TradeOrderItem> items = orderItemMapper.selectList(
                 new LambdaQueryWrapper<TradeOrderItem>().eq(TradeOrderItem::getOrderId, orderId));
 
+        // 查询用户信息
+        com.shengwei.tushuguanli.entity.SysUser user = sysUserMapper.selectById(order.getUserId());
+        Map<String, Object> userInfo = null;
+        if (user != null) {
+            userInfo = new HashMap<>();
+            userInfo.put("realName", user.getRealName() != null ? user.getRealName() : user.getUsername());
+            userInfo.put("address", user.getAddress());
+            userInfo.put("phone", user.getPhone());
+        }
+
         Map<String, Object> detail = new HashMap<>();
         detail.put("order", order);
         detail.put("items", items);
+        detail.put("user", userInfo);
 
         List<TradeOrderRefund> refunds = refundMapper.selectByOrderNo(order.getOrderNo());
         detail.put("refunds", refunds.isEmpty() ? null : refunds);

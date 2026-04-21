@@ -39,7 +39,6 @@
               </span>
             </template>
           </el-table-column>
-          <el-table-column prop="userId" label="用户ID" width="90" align="center" />
           <el-table-column label="订单状态" width="100" align="center">
             <template slot-scope="scope">
               <el-tag :type="getStatusType(scope.row.status)">
@@ -123,7 +122,6 @@
         <el-table :data="refundList" style="width: 100%" border v-loading="refundLoading">
           <el-table-column prop="id" label="退款ID" width="80" align="center" />
           <el-table-column prop="orderNo" label="订单号" min-width="180" />
-          <el-table-column prop="userId" label="用户ID" width="90" align="center" />
           <el-table-column label="退款金额" width="110" align="right">
             <template slot-scope="scope">
               ¥{{ scope.row.amount }}
@@ -173,7 +171,7 @@
       </div>
 
       <!-- 订单详情弹窗 -->
-      <el-dialog title="订单详情" :visible.sync="detailVisible" width="650px" :before-close="() => detailVisible = false">
+      <el-dialog title="订单详情" :visible.sync="detailVisible" width="700px" :before-close="() => detailVisible = false">
         <div v-if="detailData" class="order-detail">
           <el-descriptions :column="2" border size="medium">
             <el-descriptions-item label="订单号">{{ detailData.orderNo }}</el-descriptions-item>
@@ -182,10 +180,19 @@
             </el-descriptions-item>
             <el-descriptions-item label="总金额">¥{{ detailData.totalAmount }}</el-descriptions-item>
             <el-descriptions-item label="实付金额">¥{{ detailData.payAmount }}</el-descriptions-item>
-            <el-descriptions-item label="会员折扣">{{ (detailData.discount * 10).toFixed(1) }}折</el-descriptions-item>
-            <el-descriptions-item label="用户ID">{{ detailData.userId }}</el-descriptions-item>
+            <el-descriptions-item label="会员折扣">{{ formatDiscount(detailData.discount) }}</el-descriptions-item>
+            <el-descriptions-item label="优惠金额">¥{{ calcDiscountAmount(detailData) }}</el-descriptions-item>
+
+            <el-descriptions-item label="顾客姓名">
+              {{ detailUser ? detailUser.realName : '-' }}
+            </el-descriptions-item>
+            <el-descriptions-item label="收货地址" :span="2">
+              {{ detailUser && detailUser.address ? detailUser.address : '未填写' }}
+            </el-descriptions-item>
+            <el-descriptions-item label="联系电话">
+              {{ detailUser && detailUser.phone ? detailUser.phone : '-' }}
+            </el-descriptions-item>
             <el-descriptions-item label="创建时间">{{ detailData.createTime }}</el-descriptions-item>
-            <el-descriptions-item label="支付时间">{{ detailData.paymentTime || '未支付' }}</el-descriptions-item>
           </el-descriptions>
 
           <h4 style="margin-top: 20px; margin-bottom: 12px;">订单明细</h4>
@@ -265,7 +272,8 @@ export default {
       // 详情弹窗
       detailVisible: false,
       detailData: null,
-      detailItems: []
+      detailItems: [],
+      detailUser: null
     }
   },
   created() {
@@ -342,6 +350,7 @@ export default {
         this.detailData = row
         const res = await api.order.getDetail(row.id)
         this.detailItems = res.items || []
+        this.detailUser = res.user || null
         this.detailVisible = true
       } catch (error) {
         console.error('获取订单详情失败:', error)
@@ -439,6 +448,15 @@ export default {
     getRefundStatusText(status) {
       const texts = { 1: '审核中', 2: '已通过', 3: '已拒绝' }
       return texts[status] || '未知'
+    },
+    formatDiscount(discount) {
+      if (discount == null || isNaN(discount)) return '无折扣'
+      return (discount * 10).toFixed(1) + '折'
+    },
+    calcDiscountAmount(order) {
+      if (!order.totalAmount || !order.payAmount) return '0.00'
+      const diff = Number(order.totalAmount) - Number(order.payAmount)
+      return diff.toFixed(2)
     }
   }
 }
