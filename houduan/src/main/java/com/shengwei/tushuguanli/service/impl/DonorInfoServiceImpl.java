@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -24,7 +25,7 @@ public class DonorInfoServiceImpl extends ServiceImpl<DonorInfoMapper, DonorInfo
     public Page<DonorInfo> pageDonorList(Integer pageNum, Integer pageSize, Map<String, Object> params) {
         Page<DonorInfo> page = new Page<>(pageNum, pageSize);
         LambdaQueryWrapper<DonorInfo> wrapper = new LambdaQueryWrapper<>();
-        
+
         if (params != null) {
             String realName = (String) params.get("realName");
             String phone = (String) params.get("phone");
@@ -86,7 +87,7 @@ public class DonorInfoServiceImpl extends ServiceImpl<DonorInfoMapper, DonorInfo
         }
 
         // 检查身份证号是否被其他捐赠人士使用
-        if (StringUtils.hasText(donorInfo.getIdCard()) && 
+        if (StringUtils.hasText(donorInfo.getIdCard()) &&
             !donorInfo.getIdCard().equals(existDonor.getIdCard())) {
             DonorInfo idCardExist = getByIdCard(donorInfo.getIdCard());
             if (idCardExist != null && !idCardExist.getDonorId().equals(donorInfo.getDonorId())) {
@@ -119,7 +120,7 @@ public class DonorInfoServiceImpl extends ServiceImpl<DonorInfoMapper, DonorInfo
     @Override
     public Map<String, Object> countDonorStats() {
         Map<String, Object> result = new HashMap<>();
-        
+
         long totalCount = count();
         result.put("totalCount", totalCount);
 
@@ -130,10 +131,19 @@ public class DonorInfoServiceImpl extends ServiceImpl<DonorInfoMapper, DonorInfo
         long inactiveCount = totalCount - activeCount;
         result.put("inactiveCount", inactiveCount);
 
-        // 统计捐赠信息
-        result.put("totalBooks", 0);
-        result.put("totalAmount", 0);
-        result.put("totalScore", 0);
+        // 使用 SQL 聚合统计捐赠信息
+        List<DonorInfo> allList = list(new LambdaQueryWrapper<>());
+        int totalBooks = allList.stream()
+                .mapToInt(d -> d.getTotalBooks() != null ? d.getTotalBooks() : 0).sum();
+        java.math.BigDecimal totalAmount = allList.stream()
+                .map(d -> d.getTotalAmount() != null ? d.getTotalAmount() : java.math.BigDecimal.ZERO)
+                .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+        int totalScore = allList.stream()
+                .mapToInt(d -> d.getTotalScore() != null ? d.getTotalScore() : 0).sum();
+
+        result.put("totalBooks", totalBooks);
+        result.put("totalAmount", totalAmount);
+        result.put("totalScore", totalScore);
 
         return result;
     }

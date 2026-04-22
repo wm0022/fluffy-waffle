@@ -66,8 +66,7 @@ export default {
       await this.$refs.form.validate()
       this.loading = true
       try {
-        await api.user.changePassword({
-          userId: this.userId,
+        await api.auth.changePassword({
           oldPassword: this.form.oldPassword,
           newPassword: this.form.newPassword
         })

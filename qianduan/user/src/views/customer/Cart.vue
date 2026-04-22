@@ -71,9 +71,6 @@ export default {
   },
   computed: {
     ...mapGetters(['userInfo']),
-    userId() {
-      return this.userInfo.id || 1
-    },
     totalPrice() {
       return this.cartList.reduce((sum, item) => sum + (item.sellingPrice || 0) * (item.quantity || 1), 0)
     }
@@ -84,7 +81,7 @@ export default {
   methods: {
     async loadCart() {
       try {
-        const res = await api.cart.list(this.userId)
+        const res = await api.cart.list()
         this.cartList = res || []
       } catch (error) {
         console.error('加载购物车失败:', error)
@@ -92,14 +89,14 @@ export default {
     },
     async updateQuantity(item) {
       try {
-        await api.cart.add(this.userId, item.bookId, item.quantity)
+        await api.cart.add(item.bookId, item.quantity)
       } catch (error) {
         console.error('更新数量失败:', error)
       }
     },
     async removeFromCart(bookId) {
       try {
-        await api.cart.remove(this.userId, bookId)
+        await api.cart.remove(bookId)
         this.$message.success('删除成功')
         this.loadCart()
       } catch (error) {
@@ -108,7 +105,7 @@ export default {
     },
     async clearCart() {
       try {
-        await api.cart.clear(this.userId)
+        await api.cart.clear()
         this.$message.success('购物车已清空')
         this.loadCart()
       } catch (error) {

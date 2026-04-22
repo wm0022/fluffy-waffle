@@ -64,6 +64,19 @@
         </el-button>
       </div>
     </div>
+
+    <!-- 个人信息未完善提示弹窗 -->
+    <el-dialog title="温馨提示" :visible.sync="profileDialogVisible" width="420px" :close-on-click-modal="false" :show-close="false">
+      <div style="text-align: center; padding: 10px 0 20px;">
+        <p style="font-size: 16px; color: #303133; margin-bottom: 12px;">您的个人信息尚未完善</p>
+        <p style="font-size: 14px; color: #909399; line-height: 1.6;">
+          为了顺利配送您的订单，请先前往<span style="color: #e6a23c; font-weight: bold;">个人中心</span>完善<span style="color: #e6a23c; font-weight: bold;">姓名、联系电话、收货地址</span>等信息。
+        </p>
+      </div>
+      <span slot="footer">
+        <el-button type="primary" @click="profileDialogVisible = false">我知道了</el-button>
+      </span>
+    </el-dialog>
   </div>
 </template>
 
@@ -83,14 +96,12 @@ export default {
         levelName: '非会员',
         discount: 1.0,
         discountText: '无折扣'
-      }
+      },
+      profileDialogVisible: false
     }
   },
   computed: {
     ...mapGetters(['userInfo']),
-    userId() {
-      return this.userInfo.id || 1
-    },
     // 显示的商品列表（支持直接购买和购物车两种模式）
     displayItems() {
       if (this.buyNowItem) {
@@ -135,7 +146,7 @@ export default {
   methods: {
     async loadMemberInfo() {
       try {
-        const res = await api.member.getInfo(this.userId)
+        const res = await api.member.getInfo()
         if (res) {
           this.memberInfo = {
             level: res.memberLevel || 0,
@@ -174,7 +185,7 @@ export default {
     },
     async loadCartItems() {
       try {
-        const res = await api.cart.list(this.userId)
+        const res = await api.cart.list()
         this.cartItems = res || []
         if (this.cartItems.length === 0) {
           this.$message.warning('购物车是空的')
@@ -185,15 +196,29 @@ export default {
         this.$message.error('加载失败')
       }
     },
+    checkProfile() {
+      if (!this.userInfo) return true
+      const requiredFields = ['realName', 'phone', 'address']
+      for (const field of requiredFields) {
+        const val = this.userInfo[field]
+        if (!val || String(val).trim() === '') return false
+      }
+      return true
+    },
     async submitOrder() {
+      // 先检查个人信息是否完善
+      if (!this.checkProfile()) {
+        this.profileDialogVisible = true
+        return
+      }
       this.loading = true
       try {
         // 如果是直接购买，先添加到购物车再创建订单
         if (this.buyNowItem) {
-          await api.cart.add(this.userId, this.buyNowItem.bookId, 1)
+          await api.cart.add(this.buyNowItem.bookId, 1)
         }
         
-        const res = await api.order.create({ userId: this.userId })
+        const res = await api.order.create({})
         console.log('订单创建成功，订单号:', res.orderNo, '订单金额:', res.payAmount)
         this.$message.success('订单创建成功')
         

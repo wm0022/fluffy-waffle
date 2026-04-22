@@ -58,9 +58,15 @@ const routes = [
       },
       {
         path: 'member',
-        name: 'Member',
+        name: 'Staff',
         component: () => import('@/views/admin/member/MemberList.vue'),
-        meta: { title: '会员管理', requireAdmin: true }
+        meta: { title: '员工管理', requireAdmin: true }
+      },
+      {
+        path: 'customer',
+        name: 'Customer',
+        component: () => import('@/views/admin/customer/CustomerList.vue'),
+        meta: { title: '顾客管理', requireAdmin: true }
       },
       {
         path: 'order',
@@ -131,13 +137,56 @@ router.beforeEach((to, from, next) => {
     return next('/login?redirect=' + encodeURIComponent(to.fullPath))
   }
 
-  // 2. 权限校验：标记了 requireAdmin 的路由，只有 userType=1 的管理员可访问
-  if (to.meta.requireAdmin && !store.getters.isAdmin) {
-    console.warn('[权限拦截] 非管理员用户试图访问受限页面:', to.path)
+  // 2. 权限校验：基于 RBAC 菜单权限判断
+  if (to.meta.requireAdmin && !hasMenuPermission(to.path)) {
+    console.warn('[权限拦截] 用户无权访问该页面:', to.path)
     return next('/403')
   }
 
   next()
 })
+
+/**
+ * 检查当前用户是否有访问目标路由的菜单权限
+ * 规则：
+ *   - userType=1 超级管理员：放行所有路由
+ *   - 其他角色：检查路由路径是否在已授权的菜单路径中（支持子路径匹配）
+ *     例如拥有 "book" 权限的用户可以访问 /admin/book、/admin/book/add、/admin/book/edit/123
+ */
+function hasMenuPermission(routePath) {
+  // 超级管理员直接放行
+  if (store.getters.isAdmin) return true
+
+  const menus = store.state.menus || []
+  const allowedPaths = extractMenuPaths(menus)
+
+  console.log('[权限校验] 目标路由:', routePath)
+  console.log('[权限校验] 菜单数据(JSON):', JSON.stringify(menus))
+  console.log('[权限校验] 提取到的路径列表:', allowedPaths)
+
+  // 兼容两种格式：已带 /admin/ 前缀 或 纯路径名
+  return allowedPaths.some(p => {
+    const normalized = p.startsWith('/admin/') ? p : ('/admin/' + p).replace(/\/+/g, '/')
+    return routePath === normalized || routePath.startsWith(normalized + '/')
+  })
+}
+
+/**
+ * 从菜单树中递归提取所有叶子节点的 path 字段
+ */
+function extractMenuPaths(menus) {
+  const paths = []
+  function traverse(items) {
+    for (const item of items || []) {
+      if (item.children && item.children.length > 0) {
+        traverse(item.children)
+      } else if (item.path) {
+        paths.push(item.path)
+      }
+    }
+  }
+  traverse(menus)
+  return paths
+}
 
 export default router

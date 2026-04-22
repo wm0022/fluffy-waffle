@@ -12,7 +12,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * 用户认证控制器
+ * 后台管理员认证控制器
+ * 注意：顾客登录/注册/信息请使用 CustomerAuthController (/customer/auth/*)
  */
 @RestController
 @RequestMapping("/auth")
@@ -28,7 +29,7 @@ public class AuthController {
     private PasswordEncoder passwordEncoder;
 
     /**
-     * 用户登录
+     * 管理员登录
      */
     @PostMapping("/login")
     public Result<Map<String, Object>> login(
@@ -37,6 +38,9 @@ public class AuthController {
         
         String token = userService.login(username, password);
         SysUser user = userService.getByUsername(username);
+        if (user != null) {
+            user.setPassword(null);  // 安全：不返回密码哈希值
+        }
 
         Map<String, Object> result = new HashMap<>();
         result.put("token", token);
@@ -46,21 +50,7 @@ public class AuthController {
     }
 
     /**
-     * 用户注册
-     */
-    @PostMapping("/register")
-    public Result<Void> register(
-            @RequestParam String username,
-            @RequestParam String password,
-            @RequestParam String email,
-            @RequestParam String phone) {
-        
-        userService.register(username, password, email, phone);
-        return Result.success("注册成功");
-    }
-
-    /**
-     * 用户登出
+     * 管理员登出
      */
     @PostMapping("/logout")
     public Result<Void> logout() {
@@ -69,7 +59,7 @@ public class AuthController {
     }
 
     /**
-     * 获取当前登录用户信息（从 JWT Token 中解析）
+     * 获取当前登录管理员信息（从 JWT Token 中解析）
      */
     @GetMapping("/info")
     public Result<SysUser> getCurrentUser() {

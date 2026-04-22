@@ -29,11 +29,15 @@ public class DonationController {
     }
 
     /**
-     * 获取用户捐赠记录
+     * 获取当前用户捐赠记录
      */
     @GetMapping("/myList")
-    public Result<List<DonationRecord>> getUserDonations(@RequestParam Long userId) {
-        List<DonationRecord> list = donationService.getUserDonations(userId);
+    public Result<List<DonationRecord>> getUserDonations() {
+        Long currentUserId = com.shengwei.tushuguanli.config.SecurityContext.getCurrentUserId();
+        if (currentUserId == null) {
+            return Result.error(401, "请先登录");
+        }
+        List<DonationRecord> list = donationService.getUserDonations(currentUserId);
         return Result.success(list);
     }
 
@@ -54,7 +58,11 @@ public class DonationController {
         Long id = Long.valueOf(params.get("id").toString());
         Integer status = Integer.valueOf(params.get("status").toString());
         String reviewRemark = params.get("reviewRemark") != null ? params.get("reviewRemark").toString() : null;
-        Long reviewerId = params.containsKey("reviewerId") ? Long.valueOf(params.get("reviewerId").toString()) : 1L;
+        // 审核人ID从Token获取，不接受前端传入（防伪造审核记录）
+        Long reviewerId = com.shengwei.tushuguanli.config.SecurityContext.getCurrentUserId();
+        if (reviewerId == null) {
+            return Result.error(401, "请先登录");
+        }
 
         donationService.reviewDonation(id, status, reviewRemark, reviewerId);
         return Result.success("审核成功");

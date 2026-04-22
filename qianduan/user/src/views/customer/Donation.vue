@@ -116,6 +116,19 @@
         </el-tab-pane>
       </el-tabs>
     </div>
+
+    <!-- 个人信息未完善提示弹窗 -->
+    <el-dialog title="温馨提示" :visible.sync="profileDialogVisible" width="420px" :close-on-click-modal="false" :show-close="false">
+      <div style="text-align: center; padding: 10px 0 20px;">
+        <p style="font-size: 16px; color: #303133; margin-bottom: 12px;">您的个人信息尚未完善</p>
+        <p style="font-size: 14px; color: #909399; line-height: 1.6;">
+          为了更好地记录您的捐赠信息，请先前往<span style="color: #e6a23c; font-weight: bold;">个人中心</span>完善您的个人信息（如姓名、联系方式等）。
+        </p>
+      </div>
+      <span slot="footer">
+        <el-button type="primary" @click="gotoDonation">我知道了</el-button>
+      </span>
+    </el-dialog>
   </div>
 </template>
 
@@ -142,6 +155,8 @@ export default {
         description: ''
       },
       donationRecords: [],
+      profileDialogVisible: false,
+      requiredFields: ['realName', 'phone'],
       rules: {
         bookName: [{ required: true, message: '请输入书名', trigger: 'blur' }],
         publisher: [{ required: true, message: '请输入出版社', trigger: 'blur' }],
@@ -150,32 +165,40 @@ export default {
     }
   },
   computed: {
-    ...mapGetters(['userInfo']),
-    userId() {
-      const id = this.userInfo && this.userInfo.id
-      if (!id) {
-        console.warn('[Donation] userInfo 未加载或 id 缺失，捐赠操作可能异常')
-      }
-      return id || null
-    }
+    ...mapGetters(['userInfo'])
   },
   watch: {
-    userId: {
-      immediate: true,
-      handler(val) {
-        this.donationForm.userId = val
-      }
-    }
+    // 移除 userId watcher，不再依赖 Store 中的 id
+    // 后端接口从 JWT Token 获取当前用户 ID，无需前端传入
   },
   created() {
+    // 初始化时确保 donationForm 不含残留的旧 userId
     this.loadRecords()
   },
   methods: {
+    checkProfile() {
+      if (!this.userInfo) return true
+      for (const field of this.requiredFields) {
+        const val = this.userInfo[field]
+        if (!val || String(val).trim() === '') return false
+      }
+      return true
+    },
+    gotoDonation() {
+      this.profileDialogVisible = false
+    },
     submitDonation() {
+      // 先检查个人信息是否完善
+      if (!this.checkProfile()) {
+        this.profileDialogVisible = true
+        return
+      }
       this.$refs.donationForm.validate(async (valid) => {
         if (valid) {
           try {
-            await api.donation.submit(this.donationForm)
+            // 不传 userId，后端从 JWT Token 自动获取当前登录用户
+            const { userId, ...submitData } = this.donationForm
+            await api.donation.submit(submitData)
             this.$message.success('捐赠申请已提交，请等待审核')
             this.resetForm()
             this.loadRecords()
@@ -188,7 +211,6 @@ export default {
     },
     resetForm() {
       this.donationForm = {
-        userId: this.userId,
         bookName: '',
         publisher: '',
         quantity: 1,
@@ -204,7 +226,8 @@ export default {
     },
     async loadRecords() {
       try {
-        const res = await api.donation.myList(this.userId)
+        // 不传 userId，后端从 JWT Token 自动获取当前用户
+        const res = await api.donation.myList()
         this.donationRecords = res || []
       } catch (error) {
         console.error('加载记录失败:', error)

@@ -269,10 +269,18 @@ export default {
       this.$refs.donorForm.validate(async (valid) => {
         if (!valid) return
         try {
+          // 提交前移除统计字段，防止编辑操作覆盖累加数据
+          const submitData = { ...this.donorForm }
+          delete submitData.totalBooks
+          delete submitData.totalAmount
+          delete submitData.totalScore
+          delete submitData.createTime
+          delete submitData.updateTime
+
           if (this.editDonor) {
-            await api.donor.update(this.donorForm)
+            await api.donor.update(submitData)
           } else {
-            await api.donor.save(this.donorForm)
+            await api.donor.save(submitData)
           }
           this.$message.success('保存成功')
           this.dialogVisible = false

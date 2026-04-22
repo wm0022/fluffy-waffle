@@ -15,6 +15,7 @@
       <el-table :data="donationList" style="width: 100%">
         <el-table-column prop="id" label="ID" width="80" />
         <el-table-column prop="userId" label="用户ID" width="100" />
+        <el-table-column prop="userName" label="捐赠者姓名" width="120" />
         <el-table-column prop="bookName" label="书名" width="180" />
         <el-table-column prop="publisher" label="出版社" width="150" />
         <el-table-column prop="quantity" label="数量" width="80" />

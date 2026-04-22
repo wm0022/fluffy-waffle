@@ -99,9 +99,6 @@ export default {
   },
   computed: {
     ...mapGetters(['userInfo']),
-    userId() {
-      return this.userInfo.id || 1
-    },
     searchKeyword() {
       return this.$route.query.keyword || ''
     }
@@ -184,9 +181,15 @@ export default {
         this.getBookList()
         return
       }
+      if (this.$route.query.tab === category) {
+        this.activeCategory = category
+        this.pageNum = 1
+        this.getBookList()
+        return
+      }
       this.activeCategory = category
       this.pageNum = 1
-      this.$router.replace({ query: { tab: category } })
+      this.$router.replace({ query: { tab: category } }).catch(() => {})
       this.getBookList()
     },
     handleSortChange() {
@@ -205,7 +208,7 @@ export default {
     },
     async addToCart(book) {
       try {
-        await api.cart.add(this.userId, book.id, 1)
+        await api.cart.add(book.id, 1)
         this.$message.success('已添加到购物车')
       } catch (error) {
         console.error('添加购物车失败:', error)

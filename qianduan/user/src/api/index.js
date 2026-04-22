@@ -50,25 +50,25 @@ const request = (config) => {
 export default {
   auth: {
     login: (username, password) => request({
-      url: `/auth/login`,
+      url: `/customer/auth/login`,
       method: 'post',
       params: { username, password }
     }),
     register: (username, password, email, phone) => request({
-      url: `/auth/register`,
+      url: `/customer/auth/register`,
       method: 'post',
       params: { username, password, email, phone }
     }),
     logout: () => request({
-      url: `/auth/logout`,
+      url: `/customer/auth/logout`,
       method: 'post'
     }),
     getInfo: () => request({
-      url: `/auth/info`,
+      url: `/customer/auth/info`,
       method: 'get'
     }),
     changePassword: (data) => request({
-      url: `/auth/change-password`,
+      url: `/customer/auth/change-password`,
       method: 'post',
       data
     })
@@ -122,25 +122,23 @@ export default {
     })
   },
   cart: {
-    add: (userId, bookId, quantity) => request({
+    add: (bookId, quantity) => request({
       url: `/cart/add`,
       method: 'post',
-      data: { userId, bookId, quantity }
+      data: { bookId, quantity }
     }),
-    list: (userId) => request({
+    list: () => request({
       url: `/cart/list`,
-      method: 'get',
-      params: { userId }
+      method: 'get'
     }),
-    remove: (userId, bookId) => request({
+    remove: (bookId) => request({
       url: `/cart/remove`,
       method: 'delete',
-      data: { userId, bookId }
+      data: { bookId }
     }),
-    clear: (userId) => request({
+    clear: () => request({
       url: `/cart/clear`,
-      method: 'delete',
-      params: { userId }
+      method: 'delete'
     })
   },
   order: {
@@ -149,10 +147,10 @@ export default {
       method: 'post',
       data
     }),
-    list: (userId, params) => request({
+    list: (params) => request({
       url: `/order/list`,
       method: 'get',
-      params: { userId, ...params }
+      params
     }),
     getItems: (orderId) => request({
       url: `/order/items/${orderId}`,
@@ -163,15 +161,15 @@ export default {
       method: 'post',
       data: { orderNo }
     }),
-    applyRefund: (orderNo, reason, userId) => request({
+    applyRefund: (orderNo, reason) => request({
       url: `/order/refund/apply`,
       method: 'post',
-      data: { orderNo, reason, userId }
+      data: { orderNo, reason }
     }),
-    getRefundList: (userId, params) => request({
+    getRefundList: (params) => request({
       url: `/order/refund/list`,
       method: 'get',
-      params: { userId, ...params }
+      params
     })
   },
   donation: {
@@ -180,10 +178,9 @@ export default {
       method: 'post',
       data
     }),
-    myList: (userId) => request({
+    myList: () => request({
       url: `/donation/myList`,
-      method: 'get',
-      params: { userId }
+      method: 'get'
     }),
     count: () => request({
       url: `/donation/count`,
@@ -191,10 +188,9 @@ export default {
     })
   },
   member: {
-    getInfo: (userId) => request({
+    getInfo: () => request({
       url: `/member/info`,
-      method: 'get',
-      params: { userId }
+      method: 'get'
     })
   },
   user: {
@@ -234,6 +230,17 @@ export default {
       url: `/book/charity`,
       method: 'get',
       params
+    })
+  },
+  customer: {
+    getInfo: () => request({
+      url: `/customer/auth/info`,
+      method: 'get'
+    }),
+    updateProfile: (data) => request({
+      url: `/customer`,
+      method: 'put',
+      data
     })
   }
 }

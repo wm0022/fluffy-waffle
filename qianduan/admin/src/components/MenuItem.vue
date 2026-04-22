@@ -50,7 +50,9 @@ export default {
       const iconMap = {
         '角色管理': 'el-icon-s-custom',
         '用户管理': 'el-icon-user',
+        '员工管理': 'el-icon-user-solid',
         '会员管理': 'el-icon-user',
+        '顾客管理': 'el-icon-user',
         '图书管理': 'el-icon-reading',
         '库存管理': 'el-icon-office-building',
         '订单管理': 'el-icon-shopping-cart-2',

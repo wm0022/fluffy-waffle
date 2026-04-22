@@ -2,8 +2,8 @@
   <div class="member-list">
     <el-card>
       <div slot="header" style="display: flex; justify-content: space-between; align-items: center;">
-        <span>用户管理</span>
-        <el-button type="primary" size="small" icon="el-icon-plus" @click="handleAdd">创建用户</el-button>
+        <span>员工管理</span>
+        <el-button type="primary" size="small" icon="el-icon-plus" @click="handleAdd">创建员工</el-button>
       </div>
       
       <el-table :data="userList" style="width: 100%" v-loading="loading">
@@ -63,8 +63,7 @@
         </el-form-item>
         <el-form-item label="角色类型" prop="userType">
           <el-select v-model="userForm.userType" placeholder="请选择角色类型" style="width: 100%;">
-            <el-option label="店员" :value="1" />
-            <el-option label="普通用户" :value="2" />
+            <el-option v-for="role in roleList" :key="role.roleId" :label="role.roleName" :value="role.roleId" />
           </el-select>
         </el-form-item>
         <el-form-item label="邮箱" prop="email">
@@ -113,7 +112,7 @@ export default {
         id: null,
         username: '',
         password: '',
-        userType: 2,
+        userType: null,
         email: '',
         phone: '',
         memberLevel: 0,
@@ -125,13 +124,35 @@ export default {
         password: [{ required: true, message: '请输入密码', trigger: 'blur' }],
         userType: [{ required: true, message: '请选择角色类型', trigger: 'change' }]
       },
-      levelNames: ['非会员', '普通会员', '银卡会员', '金卡会员', '钻石卡会员']
+      levelNames: ['非会员', '普通会员', '银卡会员', '金卡会员', '钻石卡会员'],
+      roleList: []
     }
   },
   created() {
     this.getUserList()
+    this.loadRoleList()
   },
   methods: {
+    async loadRoleList() {
+      try {
+        const res = await api.role.list()
+        // 过滤掉管理员角色（通常 roleId=1），员工不需要分配管理员角色
+        this.roleList = (res || []).filter(r => r.status === 1)
+        if (!this.roleList.length) {
+          // 接口无数据时的兜底选项
+          this.roleList = [
+            { roleId: 2, roleName: '店员' },
+            { roleId: 3, roleName: '普通用户' }
+          ]
+        }
+      } catch (e) {
+        console.warn('加载角色列表失败，使用默认值:', e)
+        this.roleList = [
+          { roleId: 2, roleName: '店员' },
+          { roleId: 3, roleName: '普通用户' }
+        ]
+      }
+    },
     async getUserList() {
       this.loading = true
       try {
@@ -142,8 +163,8 @@ export default {
         this.userList = res.records || []
         this.total = res.total || 0
       } catch (error) {
-        console.error('获取用户列表失败:', error)
-        this.$message.error('获取用户列表失败')
+        console.error('获取员工列表失败:', error)
+        this.$message.error('获取员工列表失败')
       } finally {
         this.loading = false
       }
@@ -154,12 +175,12 @@ export default {
     },
     handleAdd() {
       this.isCreate = true
-      this.dialogTitle = '创建用户'
+      this.dialogTitle = '创建员工'
       this.userForm = {
         id: null,
         username: '',
         password: '',
-        userType: 2,
+        userType: this.roleList.length > 0 ? this.roleList[0].roleId : 2,
         email: '',
         phone: '',
         memberLevel: 0,
@@ -173,7 +194,7 @@ export default {
     },
     handleEdit(row) {
       this.isCreate = false
-      this.dialogTitle = '编辑用户'
+      this.dialogTitle = '编辑员工'
       this.userForm = { ...row }
       this.dialogVisible = true
       this.$nextTick(() => {
@@ -181,7 +202,7 @@ export default {
       })
     },
     handleDelete(row) {
-      this.$confirm('确定要删除该用户吗？', '提示', {
+      this.$confirm('确定要删除该员工吗？', '提示', {
         confirmButtonText: '确定',
         cancelButtonText: '取消',
         type: 'warning'
@@ -219,14 +240,14 @@ export default {
       })
     },
     getUserTypeName(type) {
-      if (type === 1) return '店员'
-      if (type === 2) return '普通用户'
-      return '未知'
+      const role = this.roleList.find(r => r.roleId === type)
+      return role ? role.roleName : '未知'
     },
     getUserTypeTag(type) {
-      if (type === 1) return 'warning'
-      if (type === 2) return ''
-      return 'info'
+      // 根据 roleId 返回不同的 tag 颜色
+      const tagTypes = {}
+      this.roleList.forEach((r, idx) => { tagTypes[r.roleId] = ['success', 'warning', 'info', 'danger', ''][idx % 5] })
+      return tagTypes[type] || 'info'
     },
     getLevelName(level) {
       return this.levelNames[level] || '非会员'

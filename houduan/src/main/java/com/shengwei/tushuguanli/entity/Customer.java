@@ -9,9 +9,13 @@ import lombok.Data;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+/**
+ * 顾客实体类
+ * 对应数据库表 customer（从 sys_user 拆分的顾客专用表）
+ */
 @Data
-@TableName("sys_user")
-public class SysUser {
+@TableName("customer")
+public class Customer {
 
     @TableId(value = "id", type = IdType.AUTO)
     private Long id;
@@ -20,14 +24,17 @@ public class SysUser {
 
     private String password;
 
+    @TableField("real_name")
     private String realName;
 
     private Integer gender;
 
+    @TableField("id_card")
     private String idCard;
 
     private String nation;
 
+    @TableField("native_place")
     private String nativePlace;
 
     @TableField("birth_date")
@@ -47,7 +54,13 @@ public class SysUser {
 
     private Integer status;
 
-    private Integer userType;
+    @TableField("member_level")
+    private Integer memberLevel;
+
+    private Integer points;
+
+    @TableField("total_amount")
+    private java.math.BigDecimal totalAmount;
 
     private LocalDateTime createTime;
 

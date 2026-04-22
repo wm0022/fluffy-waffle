@@ -1,8 +1,8 @@
 package com.shengwei.tushuguanli.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.shengwei.tushuguanli.entity.SysUser;
-import com.shengwei.tushuguanli.mapper.SysUserMapper;
+import com.shengwei.tushuguanli.entity.Customer;
+import com.shengwei.tushuguanli.mapper.CustomerMapper;
 import com.shengwei.tushuguanli.service.MemberService;
 import org.springframework.stereotype.Service;
 
@@ -14,7 +14,7 @@ import java.util.Map;
  * 会员服务实现
  */
 @Service
-public class MemberServiceImpl extends ServiceImpl<SysUserMapper, SysUser> implements MemberService {
+public class MemberServiceImpl extends ServiceImpl<CustomerMapper, Customer> implements MemberService {
 
     @Override
     public int calculateMemberLevel(BigDecimal totalAmount) {
@@ -67,7 +67,7 @@ public class MemberServiceImpl extends ServiceImpl<SysUserMapper, SysUser> imple
 
     @Override
     public void updateMemberInfo(Long userId, BigDecimal payAmount) {
-        SysUser user = getById(userId);
+        Customer user = getById(userId);
         if (user == null) {
             return;
         }
@@ -88,7 +88,7 @@ public class MemberServiceImpl extends ServiceImpl<SysUserMapper, SysUser> imple
 
     @Override
     public Map<String, Object> getMemberInfo(Long userId) {
-        SysUser user = getById(userId);
+        Customer user = getById(userId);
         Map<String, Object> result = new HashMap<>();
         if (user == null) {
             result.put("memberLevel", 0);

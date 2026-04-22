@@ -233,11 +233,6 @@ export default {
   },
   computed: {
     ...mapGetters(['userInfo']),
-    userId() {
-      // 兼容处理：如果 userInfo 是旧的 Result 包装格式（有 code 字段），从 data 中取 id
-      const uid = this.userInfo?.id || this.userInfo?.data?.id
-      return uid || 1
-    },
     genderText() {
       if (this.userInfo.gender === 1) return '男'
       if (this.userInfo.gender === 2) return '女'
@@ -276,7 +271,8 @@ export default {
   methods: {
     async loadUserProfile() {
       try {
-        const res = await api.user.getById(this.userId)
+        // 使用顾客端接口获取当前登录用户信息（从 Token 解析，不传 ID）
+        const res = await api.customer.getInfo()
         if (res) {
           this.$store.commit('SET_USER_INFO', res)
         }
@@ -286,7 +282,8 @@ export default {
     },
     async loadMemberInfo() {
       try {
-        const res = await api.member.getInfo(this.userId)
+        // 从后端 Token 获取当前用户会员信息（不传 userId）
+        const res = await api.member.getInfo()
         if (res) {
           this.memberInfo = {
             level: res.memberLevel || 0,
@@ -303,7 +300,7 @@ export default {
     },
     startEdit() {
       this.profileForm = {
-        id: this.userId,
+        id: this.userInfo.id,
         realName: this.userInfo.realName || '',
         gender: this.userInfo.gender || null,
         idCard: this.userInfo.idCard || '',
@@ -324,7 +321,7 @@ export default {
     },
     async saveProfile() {
       try {
-        await api.user.update(this.profileForm)
+        await api.customer.updateProfile(this.profileForm)
         this.$message.success('保存成功')
         this.editing = false
         this.loadUserProfile()

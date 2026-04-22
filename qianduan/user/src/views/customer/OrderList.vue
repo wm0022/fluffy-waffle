@@ -114,10 +114,7 @@ export default {
     }
   },
   computed: {
-    ...mapGetters(['userInfo']),
-    userId() {
-      return this.userInfo.id || 1
-    }
+    ...mapGetters(['userInfo'])
   },
   created() {
     this.loadOrders()
@@ -125,7 +122,7 @@ export default {
   methods: {
     async loadOrders() {
       try {
-        const res = await api.order.list(this.userId, { _t: Date.now() })
+        const res = await api.order.list({ _t: Date.now() })
         this.orderList = res || []
         for (let order of this.orderList) {
           try {
@@ -169,7 +166,7 @@ export default {
         return
       }
       try {
-        await api.order.applyRefund(this.currentOrder.orderNo, this.refundReason, this.userId)
+        await api.order.applyRefund(this.currentOrder.orderNo, this.refundReason)
         this.$message.success('退款申请已提交')
         this.refundDialogVisible = false
         this.loadOrders()
@@ -223,7 +220,6 @@ export default {
           bookId: this.currentOrderItem.bookId,
           bookName: this.currentOrderItem.bookName,
           orderItemId: this.currentOrderItem.id,
-          memberId: this.userId,
           customerName: this.userInfo.username
         })
         this.$message.success('评价提交成功，等待审核')

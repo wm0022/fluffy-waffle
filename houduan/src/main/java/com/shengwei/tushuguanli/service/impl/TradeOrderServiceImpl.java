@@ -1,6 +1,7 @@
 package com.shengwei.tushuguanli.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.shengwei.tushuguanli.entity.CartItemVO;
 import com.shengwei.tushuguanli.entity.TradeOrder;
@@ -14,7 +15,7 @@ import com.shengwei.tushuguanli.service.InventoryService;
 import com.shengwei.tushuguanli.service.MemberService;
 import com.shengwei.tushuguanli.service.ShoppingCartService;
 import com.shengwei.tushuguanli.service.TradeOrderService;
-import com.shengwei.tushuguanli.service.UserService;
+import com.shengwei.tushuguanli.service.CustomerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,12 +23,16 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 订单服务实现
  */
 @Service
 public class TradeOrderServiceImpl extends ServiceImpl<TradeOrderMapper, TradeOrder> implements TradeOrderService {
+
+    private static final Logger log = LoggerFactory.getLogger(TradeOrderServiceImpl.class);
 
     @Autowired
     private ShoppingCartService cartService;
@@ -45,10 +50,10 @@ public class TradeOrderServiceImpl extends ServiceImpl<TradeOrderMapper, TradeOr
     private MemberService memberService;
 
     @Autowired
-    private UserService userService;
+    private CustomerService customerService;
 
     @Autowired
-    private com.shengwei.tushuguanli.mapper.SysUserMapper sysUserMapper;
+    private com.shengwei.tushuguanli.mapper.CustomerMapper customerMapper;
 
     @Autowired
     private com.shengwei.tushuguanli.service.BookInfoService bookInfoService;
@@ -62,7 +67,8 @@ public class TradeOrderServiceImpl extends ServiceImpl<TradeOrderMapper, TradeOr
 
         // 生成订单号
         String orderNo = generateOrderNo();
-        System.out.println("创建订单，订单号：" + orderNo);
+        log.info("[createOrder] 开始创建订单, userId={}, orderNo={}, 购物车商品数={}",
+                userId, orderNo, cartItems.size());
 
         // 计算总金额
         BigDecimal totalAmount = BigDecimal.ZERO;
@@ -72,9 +78,9 @@ public class TradeOrderServiceImpl extends ServiceImpl<TradeOrderMapper, TradeOr
             }
         }
 
-        // 获取用户会员折扣
-        com.shengwei.tushuguanli.entity.SysUser user = userService.getById(userId);
-        int memberLevel = user != null && user.getMemberLevel() != null ? user.getMemberLevel() : 0;
+        // 获取顾客会员折扣
+        com.shengwei.tushuguanli.entity.Customer customer = customerService.getById(userId);
+        int memberLevel = customer != null && customer.getMemberLevel() != null ? customer.getMemberLevel() : 0;
         double discount = memberService.getDiscount(memberLevel);
         
         // 应用会员折扣
@@ -94,50 +100,63 @@ public class TradeOrderServiceImpl extends ServiceImpl<TradeOrderMapper, TradeOr
         order.setUpdateTime(LocalDateTime.now());
 
         save(order);
+        log.info("[createOrder] 订单主表创建成功, orderId={}, orderNo={}", order.getId(), orderNo);
 
-        // 创建订单明细 + 锁定库存
-        for (CartItemVO item : cartItems) {
-            // 锁定库存（下单时预占，防止超卖）
-            inventoryService.lockStock(item.getBookId(), item.getQuantity());
+        // 创建订单明细 + 锁定库存（逐个锁定，某个失败则整体回滚）
+        int successCount = 0;
+        try {
+            for (CartItemVO item : cartItems) {
+                log.info("[createOrder] 锁定库存, bookId={}, bookName={}, quantity={}",
+                        item.getBookId(), item.getBookName(), item.getQuantity());
 
-            TradeOrderItem orderItem = new TradeOrderItem();
-            orderItem.setOrderId(order.getId());
-            orderItem.setBookId(item.getBookId());
-            orderItem.setBookName(item.getBookName());
-            orderItem.setPrice(item.getSellingPrice());
-            orderItem.setQuantity(item.getQuantity());
-            orderItem.setSubtotal(item.getSubtotal());
-            orderItem.setCreateTime(LocalDateTime.now());
-            
-            orderItemMapper.insert(orderItem);
+                // 锁定库存（下单时预占，防止超卖）
+                inventoryService.lockStock(item.getBookId(), item.getQuantity());
+
+                TradeOrderItem orderItem = new TradeOrderItem();
+                orderItem.setOrderId(order.getId());
+                orderItem.setBookId(item.getBookId());
+                orderItem.setBookName(item.getBookName());
+                orderItem.setPrice(item.getSellingPrice());
+                orderItem.setQuantity(item.getQuantity());
+                orderItem.setSubtotal(item.getSubtotal());
+                orderItem.setCreateTime(LocalDateTime.now());
+                
+                orderItemMapper.insert(orderItem);
+                successCount++;
+            }
+        } catch (BusinessException e) {
+            log.error("[createOrder] 库存锁定失败, 已锁定{}/{}项, bookId可能为第{}项商品, 原因: {}",
+                    successCount, cartItems.size(), successCount + 1, e.getMessage());
+            throw e; // @Transactional 自动回滚
         }
 
         // 清空购物车
         cartService.clearCart(userId);
 
+        log.info("[createOrder] 订单创建完成, orderNo={}, 总计{}项商品", orderNo, cartItems.size());
         return order;
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void payOrder(String orderNo) {
-        System.out.println("支付订单，订单号：" + orderNo);
+        log.info("[payOrder] 收到支付请求, orderNo={}", orderNo);
         
         // 查询订单
         TradeOrder order = getOne(new LambdaQueryWrapper<TradeOrder>()
                 .eq(TradeOrder::getOrderNo, orderNo));
         
         if (order == null) {
-            throw new BusinessException("订单不存在");
+            throw new BusinessException("订单不存在, orderNo=" + orderNo);
         }
         
         if (order.getStatus() != 0) {
-            System.out.println("订单已支付或已取消，订单号: " + orderNo);
+            log.warn("[payOrder] 订单状态非待支付, orderNo={}, status={}", orderNo, order.getStatus());
             return;
         }
         
         // 更新订单状态为已支付
-        LambdaQueryWrapper<TradeOrder> updateWrapper = new LambdaQueryWrapper<>();
+        LambdaUpdateWrapper<TradeOrder> updateWrapper = new LambdaUpdateWrapper<>();
         updateWrapper.eq(TradeOrder::getOrderNo, orderNo)
                      .eq(TradeOrder::getStatus, 0);
         
@@ -149,7 +168,7 @@ public class TradeOrderServiceImpl extends ServiceImpl<TradeOrderMapper, TradeOr
         boolean updated = update(updateEntity, updateWrapper);
         
         if (updated) {
-            System.out.println("订单支付成功，订单号: " + orderNo);
+            log.info("[payOrder] 订单支付成功, orderNo={}, orderId={}", orderNo, order.getId());
             
             // 确认扣减锁定库存（支付成功，从锁定库存中真正扣除）
             try {
@@ -160,7 +179,11 @@ public class TradeOrderServiceImpl extends ServiceImpl<TradeOrderMapper, TradeOr
                     try {
                         inventoryService.confirmDeduction(item.getBookId(), item.getQuantity());
                     } catch (Exception e) {
-                        System.out.println("扣减锁定库存异常: " + e.getMessage());
+                        log.error("[payOrder] 扣减锁定库存异常, bookId={}, quantity={}, orderId={}: {}",
+                                item.getBookId(), item.getQuantity(), order.getId(), e.getMessage(), e);
+                        // 不再静默吞掉，向上抛出触发事务回滚
+                        throw new BusinessException(
+                                String.format("图书《%s》库存扣减失败: %s", item.getBookName(), e.getMessage()));
                     }
                 }
 
@@ -169,29 +192,32 @@ public class TradeOrderServiceImpl extends ServiceImpl<TradeOrderMapper, TradeOr
                     try {
                         com.shengwei.tushuguanli.entity.BookInfo bookInfo = bookInfoService.getById(item.getBookId());
                         if (bookInfo != null) {
-                            // 库存：与 inventory.stockQuantity 保持同步
                             com.shengwei.tushuguanli.entity.Inventory inv = inventoryService.getInventoryByBookId(item.getBookId());
                             if (inv != null) {
                                 bookInfo.setStockCount(inv.getStockQuantity());
                             }
-                            // 销量：累计增加
                             int oldSales = bookInfo.getSalesVolume() != null ? bookInfo.getSalesVolume() : 0;
                             bookInfo.setSalesVolume(oldSales + item.getQuantity());
                             bookInfoService.updateById(bookInfo);
                         }
                     } catch (Exception e) {
-                        System.out.println("同步book_info库存/销量异常, bookId=" + item.getBookId() + ": " + e.getMessage());
+                        log.error("[payOrder] 同步book_info库存/销量异常, bookId={}, orderId={}: {}",
+                                item.getBookId(), order.getId(), e.getMessage(), e);
                     }
                 }
+            } catch (BusinessException be) {
+                throw be; // 业务异常继续上抛
             } catch (Exception e) {
-                System.out.println("查询订单或扣减库存异常: " + e.getMessage());
+                log.error("[payOrder] 支付后处理异常, orderNo={}: {}", orderNo, e.getMessage(), e);
+                throw new BusinessException("订单支付成功但后处理异常: " + e.getMessage());
             }
             
             // 更新会员信息（累计消费金额、积分、等级）
             try {
                 memberService.updateMemberInfo(order.getUserId(), order.getPayAmount());
             } catch (Exception e) {
-                System.out.println("更新会员信息异常: " + e.getMessage());
+                log.warn("[payOrder] 更新会员信息异常（不影响订单）, userId={}, amount={}: {}",
+                        order.getUserId(), order.getPayAmount(), e.getMessage());
             }
         }
     }
@@ -264,14 +290,14 @@ public class TradeOrderServiceImpl extends ServiceImpl<TradeOrderMapper, TradeOr
         List<TradeOrderItem> items = orderItemMapper.selectList(
                 new LambdaQueryWrapper<TradeOrderItem>().eq(TradeOrderItem::getOrderId, orderId));
 
-        // 查询用户信息
-        com.shengwei.tushuguanli.entity.SysUser user = sysUserMapper.selectById(order.getUserId());
+        // 查询顾客信息
+        com.shengwei.tushuguanli.entity.Customer customer = customerMapper.selectById(order.getUserId());
         Map<String, Object> userInfo = null;
-        if (user != null) {
+        if (customer != null) {
             userInfo = new HashMap<>();
-            userInfo.put("realName", user.getRealName() != null ? user.getRealName() : user.getUsername());
-            userInfo.put("address", user.getAddress());
-            userInfo.put("phone", user.getPhone());
+            userInfo.put("realName", customer.getRealName() != null ? customer.getRealName() : customer.getUsername());
+            userInfo.put("address", customer.getAddress());
+            userInfo.put("phone", customer.getPhone());
         }
 
         Map<String, Object> detail = new HashMap<>();
@@ -321,6 +347,7 @@ public class TradeOrderServiceImpl extends ServiceImpl<TradeOrderMapper, TradeOr
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void cancelOrder(String orderNo) {
+        log.info("[cancelOrder] 收到取消订单请求, orderNo={}", orderNo);
         TradeOrder order = getOne(new LambdaQueryWrapper<TradeOrder>()
                 .eq(TradeOrder::getOrderNo, orderNo));
         if (order == null) {
@@ -349,17 +376,21 @@ public class TradeOrderServiceImpl extends ServiceImpl<TradeOrderMapper, TradeOr
                         }
                     }
                 } catch (Exception e) {
-                    System.out.println("取消订单同步book_info库存异常: " + e.getMessage());
+                    log.warn("[cancelOrder] 同步book_info库存异常, bookId={}, orderId={}: {}",
+                            item.getBookId(), order.getId(), e.getMessage());
                 }
             }
+            log.info("[cancelOrder] 库存释放完成, orderNo={}", orderNo);
         } catch (Exception e) {
-            System.out.println("取消订单释放库存异常: " + e.getMessage());
+            log.error("[cancelOrder] 释放库存异常, orderNo={}: {}", orderNo, e.getMessage(), e);
+            throw new BusinessException("取消订单释放库存失败: " + e.getMessage());
         }
         TradeOrder updateEntity = new TradeOrder();
         updateEntity.setId(order.getId());
         updateEntity.setStatus(4); // 4-已取消
         updateEntity.setUpdateTime(LocalDateTime.now());
         updateById(updateEntity);
+        log.info("[cancelOrder] 订单已取消, orderNo={}", orderNo);
     }
 
     /**

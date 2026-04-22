@@ -1,9 +1,9 @@
 package com.shengwei.tushuguanli.controller;
 
 import com.shengwei.tushuguanli.common.Result;
-import com.shengwei.tushuguanli.entity.SysUser;
+import com.shengwei.tushuguanli.entity.Customer;
+import com.shengwei.tushuguanli.service.CustomerService;
 import com.shengwei.tushuguanli.service.MemberService;
-import com.shengwei.tushuguanli.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,19 +15,23 @@ import java.util.Map;
 public class MemberController {
 
     @Autowired
-    private UserService userService;
+    private CustomerService customerService;
 
     @Autowired
     private MemberService memberService;
 
     @GetMapping("/info")
-    public Result<Map<String, Object>> getMemberInfo(@RequestParam Long userId) {
+    public Result<Map<String, Object>> getMemberInfo() {
+        Long currentUserId = com.shengwei.tushuguanli.config.SecurityContext.getCurrentUserId();
+        if (currentUserId == null) {
+            return Result.error(401, "请先登录");
+        }
         Map<String, Object> result = new HashMap<>();
-        SysUser user = userService.getById(userId);
-        if (user != null) {
-            int memberLevel = user.getMemberLevel() != null ? user.getMemberLevel() : 0;
-            int points = user.getPoints() != null ? user.getPoints() : 0;
-            java.math.BigDecimal totalAmount = user.getTotalAmount() != null ? user.getTotalAmount() : java.math.BigDecimal.ZERO;
+        Customer customer = customerService.getById(currentUserId);
+        if (customer != null) {
+            int memberLevel = customer.getMemberLevel() != null ? customer.getMemberLevel() : 0;
+            int points = customer.getPoints() != null ? customer.getPoints() : 0;
+            java.math.BigDecimal totalAmount = customer.getTotalAmount() != null ? customer.getTotalAmount() : java.math.BigDecimal.ZERO;
             double discount = memberService.getDiscount(memberLevel);
             String levelName = memberService.getLevelName(memberLevel);
             

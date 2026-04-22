@@ -358,6 +358,35 @@ export default {
       method: 'delete'
     })
   },
+  customer: {
+    pageList: (params) => request({
+      url: `/customer/page`,
+      method: 'get',
+      params
+    }),
+    list: () => request({
+      url: `/customer/list`,
+      method: 'get'
+    }),
+    getById: (id) => request({
+      url: `/customer/${id}`,
+      method: 'get'
+    }),
+    update: (data) => request({
+      url: `/customer`,
+      method: 'put',
+      data
+    }),
+    delete: (id) => request({
+      url: `/customer/${id}`,
+      method: 'delete'
+    }),
+    create: (data) => request({
+      url: `/customer/create`,
+      method: 'post',
+      data
+    })
+  },
   donor: {
     pageList: (params) => request({
       url: `/donor/page`,

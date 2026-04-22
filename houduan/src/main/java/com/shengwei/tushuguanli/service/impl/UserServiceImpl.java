@@ -62,29 +62,6 @@ public class UserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impleme
     }
 
     @Override
-    public void register(String username, String password, String email, String phone) {
-        if (getByUsername(username) != null) {
-            throw new BusinessException("用户名已存在");
-        }
-
-        LambdaQueryWrapper<SysUser> emailWrapper = new LambdaQueryWrapper<>();
-        emailWrapper.eq(SysUser::getEmail, email);
-        if (userMapper.selectOne(emailWrapper) != null) {
-            throw new BusinessException("邮箱已被注册");
-        }
-
-        SysUser user = new SysUser();
-        user.setUsername(username);
-        user.setPassword(passwordEncoder.encode(password));
-        user.setEmail(email);
-        user.setPhone(phone);
-        user.setStatus(1);
-        user.setUserType(2);
-
-        userMapper.insert(user);
-    }
-
-    @Override
     public void logout() {
     }
 }

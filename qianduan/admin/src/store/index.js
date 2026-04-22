@@ -78,6 +78,7 @@ export default new Vuex.Store({
     menus: state => state.menus,
     /**
      * 判断当前用户是否为管理员（userType=1）
+     * 后端 sys_user 表仅存储管理员，登录时自动填充 userType=1
      */
     isAdmin: state => state.userInfo.userType === 1,
     /**

@@ -94,13 +94,6 @@ export default {
         
         const res = await api.auth.login(this.loginForm.username, this.loginForm.password)
         
-        // 检查用户类型，普通用户不能是管理员
-        if (res.userInfo.userType === 1) {
-          this.$message.error('管理员账号请使用管理端登录')
-          this.loading = false
-          return
-        }
-        
         // 如果勾选了记住我，保存到本地存储
         if (this.rememberMe) {
           localStorage.setItem('rememberedUser', JSON.stringify({

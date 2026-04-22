@@ -30,12 +30,16 @@ public class TradeOrderController {
 
     @PostMapping("/create")
     public Result<TradeOrder> createOrder(@RequestBody Map<String, Object> params) {
-        Long userId = Long.valueOf(params.get("userId").toString());
-        List<CartItemVO> cartItems = cartService.getCartList(userId);
+        // 从 Token 获取当前登录顾客ID，防止横向越权
+        Long currentUserId = com.shengwei.tushuguanli.config.SecurityContext.getCurrentUserId();
+        if (currentUserId == null) {
+            return Result.error(401, "请先登录");
+        }
+        List<CartItemVO> cartItems = cartService.getCartList(currentUserId);
         if (cartItems.isEmpty()) {
             return Result.error("购物车为空");
         }
-        TradeOrder order = orderService.createOrder(userId, cartItems);
+        TradeOrder order = orderService.createOrder(currentUserId, cartItems);
         return Result.success(order);
     }
 
@@ -47,8 +51,13 @@ public class TradeOrderController {
     }
 
     @GetMapping("/list")
-    public Result<List<TradeOrder>> getOrderList(@RequestParam(required = false) Long userId) {
-        List<TradeOrder> orderList = orderService.getOrderList(userId);
+    public Result<List<TradeOrder>> getOrderList() {
+        // 顾客查看自己的订单（管理员查看全部订单请用 /order/all）
+        Long currentUserId = com.shengwei.tushuguanli.config.SecurityContext.getCurrentUserId();
+        if (currentUserId == null) {
+            return Result.error(401, "请先登录");
+        }
+        List<TradeOrder> orderList = orderService.getOrderList(currentUserId);
         return Result.success(orderList);
     }
 
@@ -95,8 +104,11 @@ public class TradeOrderController {
     public Result<Void> applyRefund(@RequestBody Map<String, Object> params) {
         String orderNo = params.get("orderNo").toString();
         String reason = params.get("reason").toString();
-        Long userId = params.containsKey("userId") ? Long.valueOf(params.get("userId").toString()) : 1L;
-        orderService.applyRefund(orderNo, userId, reason);
+        Long currentUserId = com.shengwei.tushuguanli.config.SecurityContext.getCurrentUserId();
+        if (currentUserId == null) {
+            return Result.error(401, "请先登录");
+        }
+        orderService.applyRefund(orderNo, currentUserId, reason);
         return Result.success("退款申请已提交");
     }
 

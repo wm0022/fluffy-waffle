@@ -91,14 +91,8 @@ export default {
         await this.$refs.loginForm.validate()
         this.loading = true
         
+        // 迁移后 sys_user 仅存储管理员账户，登录成功即表示是管理员，无需再检查 userType
         const res = await api.auth.login(this.loginForm.username, this.loginForm.password)
-        
-        // 检查用户类型，只有管理员才能登录管理端
-        if (res.userInfo.userType !== 1) {
-          this.$message.error('您不是管理员，无法访问管理后台')
-          this.loading = false
-          return
-        }
         
         // 如果勾选了记住我，保存到本地存储
         if (this.rememberMe) {

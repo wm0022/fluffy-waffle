@@ -25,11 +25,14 @@ public class ShoppingCartController {
      */
     @PostMapping("/add")
     public Result<Void> addToCart(@RequestBody Map<String, Object> params) {
-        Long userId = Long.valueOf(params.get("userId").toString());
+        Long currentUserId = com.shengwei.tushuguanli.config.SecurityContext.getCurrentUserId();
+        if (currentUserId == null) {
+            return Result.error(401, "请先登录");
+        }
         Long bookId = Long.valueOf(params.get("bookId").toString());
         Integer quantity = Integer.valueOf(params.get("quantity").toString());
         
-        cartService.addToCart(userId, bookId, quantity);
+        cartService.addToCart(currentUserId, bookId, quantity);
         return Result.success("添加成功");
     }
 
@@ -37,8 +40,12 @@ public class ShoppingCartController {
      * 获取购物车列表
      */
     @GetMapping("/list")
-    public Result<List<CartItemVO>> getCartList(@RequestParam Long userId) {
-        List<CartItemVO> cartList = cartService.getCartList(userId);
+    public Result<List<CartItemVO>> getCartList() {
+        Long currentUserId = com.shengwei.tushuguanli.config.SecurityContext.getCurrentUserId();
+        if (currentUserId == null) {
+            return Result.error(401, "请先登录");
+        }
+        List<CartItemVO> cartList = cartService.getCartList(currentUserId);
         return Result.success(cartList);
     }
 
@@ -47,10 +54,13 @@ public class ShoppingCartController {
      */
     @DeleteMapping("/remove")
     public Result<Void> removeFromCart(@RequestBody Map<String, Object> params) {
-        Long userId = Long.valueOf(params.get("userId").toString());
+        Long currentUserId = com.shengwei.tushuguanli.config.SecurityContext.getCurrentUserId();
+        if (currentUserId == null) {
+            return Result.error(401, "请先登录");
+        }
         Long bookId = Long.valueOf(params.get("bookId").toString());
         
-        cartService.removeFromCart(userId, bookId);
+        cartService.removeFromCart(currentUserId, bookId);
         return Result.success("删除成功");
     }
 
@@ -58,8 +68,12 @@ public class ShoppingCartController {
      * 清空购物车
      */
     @DeleteMapping("/clear")
-    public Result<Void> clearCart(@RequestParam Long userId) {
-        cartService.clearCart(userId);
+    public Result<Void> clearCart() {
+        Long currentUserId = com.shengwei.tushuguanli.config.SecurityContext.getCurrentUserId();
+        if (currentUserId == null) {
+            return Result.error(401, "请先登录");
+        }
+        cartService.clearCart(currentUserId);
         return Result.success("清空成功");
     }
 }

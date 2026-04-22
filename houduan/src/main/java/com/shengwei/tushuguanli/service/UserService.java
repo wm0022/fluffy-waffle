@@ -4,19 +4,15 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.shengwei.tushuguanli.entity.SysUser;
 
 /**
- * 用户服务
+ * 管理员用户服务
+ * 注意：顾客相关操作请使用 CustomerService
  */
 public interface UserService extends IService<SysUser> {
 
     /**
-     * 用户登录
+     * 管理员登录
      */
     String login(String username, String password);
-
-    /**
-     * 用户注册
-     */
-    void register(String username, String password, String email, String phone);
 
     /**
      * 根据用户名查询用户
