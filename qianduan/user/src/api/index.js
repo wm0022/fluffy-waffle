@@ -49,10 +49,10 @@ const request = (config) => {
 
 export default {
   auth: {
-    login: (username, password) => request({
+    login: (username, password, captchaKey, captchaCode) => request({
       url: `/customer/auth/login`,
       method: 'post',
-      params: { username, password }
+      params: { username, password, captchaKey, captchaCode }
     }),
     register: (username, password, email, phone) => request({
       url: `/customer/auth/register`,
@@ -252,6 +252,12 @@ export default {
       url: `/customer`,
       method: 'put',
       data
+    })
+  },
+  captcha: {
+    getImage: () => request({
+      url: `/captcha/image`,
+      method: 'get'
     })
   }
 }

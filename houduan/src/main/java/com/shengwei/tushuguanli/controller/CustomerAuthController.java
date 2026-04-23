@@ -22,13 +22,23 @@ public class CustomerAuthController {
     @Autowired
     private org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private CaptchaController captchaController;
+
     /**
-     * 顾客登录
+     * 顾客登录（带验证码校验）
      */
     @PostMapping("/login")
     public Result<Map<String, Object>> login(
             @RequestParam String username,
-            @RequestParam String password) {
+            @RequestParam String password,
+            @RequestParam(required = false) String captchaKey,
+            @RequestParam(required = false) String captchaCode) {
+
+        // 校验验证码
+        if (!captchaController.verifyCaptcha(captchaKey, captchaCode)) {
+            return Result.error("验证码错误或已过期");
+        }
 
         String token = customerService.login(username, password);
         Customer customer = customerService.getByUsername(username);

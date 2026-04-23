@@ -29,4 +29,7 @@ public class CartItemVO {
     
     // 小计金额
     private BigDecimal subtotal;
+    
+    // 库存数量
+    private Integer stockCount;
 }

@@ -209,10 +209,11 @@ public class BookInfoServiceImpl extends ServiceImpl<BookInfoMapper, BookInfo> i
             log.warn("读取热销缓存异常: {}", e.getMessage());
         }
 
-        // 查库
+        // 查库：按 is_hot 标记筛选热销图书，按创建时间降序（最新的排前面）
         LambdaQueryWrapper<BookInfo> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(BookInfo::getShelfStatus, 1)
-               .orderByDesc(BookInfo::getSalesVolume)
+               .eq(BookInfo::getIsHot, 1)
+               .orderByDesc(BookInfo::getCreateTime)
                .last("LIMIT " + limit);
         List<BookInfo> books = list(wrapper);
         books.forEach(this::syncStockFromInventory);
@@ -242,10 +243,11 @@ public class BookInfoServiceImpl extends ServiceImpl<BookInfoMapper, BookInfo> i
             log.warn("读取新品缓存异常: {}", e.getMessage());
         }
 
-        // 查库
+        // 查库：按 is_new 标记筛选新品图书，按创建时间降序（最新的排前面）
         LambdaQueryWrapper<BookInfo> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(BookInfo::getShelfStatus, 1)
-               .orderByDesc(BookInfo::getShelfTime)
+               .eq(BookInfo::getIsNew, 1)
+               .orderByDesc(BookInfo::getCreateTime)
                .last("LIMIT " + limit);
         List<BookInfo> books = list(wrapper);
         books.forEach(this::syncStockFromInventory);

@@ -67,8 +67,7 @@ export default {
           { required: true, message: '请输入用户名', trigger: 'blur' }
         ],
         password: [
-          { required: true, message: '请输入密码', trigger: 'blur' },
-          { min: 6, message: '密码长度不能小于 6 位', trigger: 'blur' }
+          { required: true, message: '请输入密码', trigger: 'blur' }
         ]
       },
       rememberMe: false,
@@ -133,6 +132,8 @@ export default {
         this.$router.push(redirect)
       } catch (error) {
         console.error(error)
+        const msg = (error.response && error.response.data && error.response.data.message) || error.message || '登录失败，请重试'
+        this.$message.error(msg)
       } finally {
         this.loading = false
       }

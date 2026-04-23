@@ -34,6 +34,7 @@ public class WebConfig implements WebMvcConfigurer {
             "/auth/register",
             "/customer/auth/login",    // 顾客登录（无需Token）
             "/customer/auth/register", // 顾客注册（无需Token）
+            "/captcha/**",             // 验证码接口（无需Token）
             "/book/page",       // 客户端图书浏览（分页列表）
             "/book/hot",        // 热销图书
             "/book/new",        // 新品图书

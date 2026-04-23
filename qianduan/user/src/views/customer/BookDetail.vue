@@ -34,9 +34,13 @@
               <div v-if="book.isbn" class="attr-row"><span class="attr-label">ISBN</span><span class="attr-value">{{ book.isbn }}</span></div>
             </div>
             <div class="book-actions">
-              <el-input-number v-model="quantity" :min="1" :max="book.stockCount || 99" size="medium" />
-              <el-button type="primary" icon="el-icon-shopping-cart-2" @click="addToCart">加入购物车</el-button>
-              <el-button type="danger" icon="el-icon-goods" @click="buyNow">立即购买</el-button>
+              <div class="stock-info">
+                <span v-if="book.stockCount > 0" class="stock-available">库存：{{ book.stockCount }} 本</span>
+                <span v-else class="stock-out">暂无库存</span>
+              </div>
+              <el-input-number v-model="quantity" :min="1" :max="book.stockCount || 1" size="medium" :disabled="!book.stockCount" />
+              <el-button type="primary" icon="el-icon-shopping-cart-2" @click="addToCart" :disabled="!book.stockCount">加入购物车</el-button>
+              <el-button type="danger" icon="el-icon-goods" @click="buyNow" :disabled="!book.stockCount">立即购买</el-button>
             </div>
           </div>
         </el-col>
@@ -168,11 +172,16 @@ export default {
         this.$router.push('/login')
         return
       }
+      if (!this.book.stockCount) {
+        this.$message.error('该商品暂无库存，无法加入购物车')
+        return
+      }
       try {
-        await api.cart.add(user.id, this.book.id, this.quantity)
+        await api.cart.add(this.book.id, this.quantity)
         this.$message.success('已加入购物车')
       } catch (e) {
-        this.$message.error('加入购物车失败')
+        const msg = e.response?.data?.message || e.message || '加入购物车失败'
+        this.$message.error(msg)
       }
     },
     buyNow() {
@@ -310,6 +319,22 @@ export default {
       align-items: center;
       gap: 15px;
       margin-top: 20px;
+
+      .stock-info {
+        width: 100%;
+
+        .stock-available {
+          color: #67c23a;
+          font-size: 14px;
+          font-weight: 500;
+        }
+
+        .stock-out {
+          color: #f56c6c;
+          font-size: 14px;
+          font-weight: 500;
+        }
+      }
     }
   }
 

@@ -17,13 +17,13 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(BusinessException.class)
     public Result<?> handleBusinessException(BusinessException e) {
-        log.error("业务异常：{}", e.getMessage(), e);
+        log.warn("业务异常：{}", e.getMessage());
         return Result.error(e.getCode(), e.getMessage());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public Result<?> handleValidationException(MethodArgumentNotValidException e) {
-        log.error("参数验证异常：{}", e.getMessage());
+        log.warn("参数验证异常：{}", e.getMessage());
         String message = e.getBindingResult().getFieldErrors().stream()
                 .map(error -> error.getField() + ": " + error.getDefaultMessage())
                 .findFirst()
@@ -33,7 +33,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(BindException.class)
     public Result<?> handleBindException(BindException e) {
-        log.error("参数绑定异常：{}", e.getMessage());
+        log.warn("参数绑定异常：{}", e.getMessage());
         String message = e.getBindingResult().getFieldErrors().stream()
                 .map(error -> error.getField() + ": " + error.getDefaultMessage())
                 .findFirst()
@@ -43,7 +43,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(NoHandlerFoundException.class)
     public Result<?> handleNotFoundException(NoHandlerFoundException e) {
-        log.error("请求地址不存在：{}", e.getRequestURL());
+        log.warn("请求地址不存在：{}", e.getRequestURL());
         return Result.error(404, "请求地址不存在");
     }
 

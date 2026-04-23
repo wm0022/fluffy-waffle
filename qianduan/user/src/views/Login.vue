@@ -30,6 +30,24 @@
             @keyup.enter.native="handleLogin"
           />
         </el-form-item>
+        <el-form-item prop="captchaCode">
+          <div class="captcha-row">
+            <el-input
+              v-model="loginForm.captchaCode"
+              placeholder="请输入验证码"
+              prefix-icon="el-icon-key"
+              size="medium"
+              style="flex: 1;"
+              @keyup.enter.native="handleLogin"
+            />
+            <img
+              :src="captchaImageUrl"
+              class="captcha-img"
+              title="点击刷新验证码"
+              @click="refreshCaptcha"
+            />
+          </div>
+        </el-form-item>
         <el-form-item>
           <el-checkbox v-model="rememberMe">记住我</el-checkbox>
         </el-form-item>
@@ -61,19 +79,24 @@ export default {
     return {
       loginForm: {
         username: '',
-        password: ''
+        password: '',
+        captchaCode: ''
       },
       loginRules: {
         username: [
           { required: true, message: '请输入用户名', trigger: 'blur' }
         ],
         password: [
-          { required: true, message: '请输入密码', trigger: 'blur' },
-          { min: 6, message: '密码长度不能小于 6 位', trigger: 'blur' }
+          { required: true, message: '请输入密码', trigger: 'blur' }
+        ],
+        captchaCode: [
+          { required: true, message: '请输入验证码', trigger: 'blur' }
         ]
       },
       rememberMe: false,
-      loading: false
+      loading: false,
+      captchaKey: '',
+      captchaImageUrl: ''
     }
   },
   created() {
@@ -85,15 +108,33 @@ export default {
       this.loginForm.password = userData.password
       this.rememberMe = true
     }
+    // 加载验证码
+    this.refreshCaptcha()
   },
   methods: {
+    async refreshCaptcha() {
+      try {
+        const res = await api.captcha.getImage()
+        if (res) {
+          this.captchaKey = res.key
+          this.captchaImageUrl = res.image
+        }
+      } catch (error) {
+        console.error('获取验证码失败:', error)
+      }
+    },
     async handleLogin() {
       try {
         await this.$refs.loginForm.validate()
         this.loading = true
-        
-        const res = await api.auth.login(this.loginForm.username, this.loginForm.password)
-        
+
+        const res = await api.auth.login(
+          this.loginForm.username,
+          this.loginForm.password,
+          this.captchaKey,
+          this.loginForm.captchaCode
+        )
+
         // 如果勾选了记住我，保存到本地存储
         if (this.rememberMe) {
           localStorage.setItem('rememberedUser', JSON.stringify({
@@ -103,17 +144,21 @@ export default {
         } else {
           localStorage.removeItem('rememberedUser')
         }
-        
+
         // res 已经是 { token, userInfo } 对象
         this.$store.dispatch('login', {
           token: res.token,
           userInfo: res.userInfo
         })
-        
+
         this.$message.success('登录成功')
         this.$router.push('/customer/home')
       } catch (error) {
         console.error(error)
+        const msg = (error.response && error.response.data && error.response.data.message) || error.message || '登录失败，请重试'
+        this.$message.error(msg)
+        this.loginForm.captchaCode = ''
+        this.refreshCaptcha() // 验证码错误时自动刷新
       } finally {
         this.loading = false
       }
@@ -174,6 +219,25 @@ export default {
     .login-form {
       .el-form-item {
         margin-bottom: 24px;
+      }
+
+      .captcha-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+
+        .captcha-img {
+          width: 130px;
+          height: 40px;
+          cursor: pointer;
+          border-radius: 4px;
+          border: 1px solid #dcdfe6;
+          flex-shrink: 0;
+
+          &:hover {
+            border-color: #409eff;
+          }
+        }
       }
     }
     

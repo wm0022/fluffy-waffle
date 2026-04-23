@@ -24,7 +24,13 @@
               ¥{{ scope.row.sellingPrice }}
             </template>
           </el-table-column>
-          <el-table-column prop="quantity" label="数量" width="100" />
+          <el-table-column prop="quantity" label="数量" width="80" />
+          <el-table-column label="库存状态" width="120">
+            <template slot-scope="scope">
+              <span v-if="(scope.row.stockCount || 0) >= scope.row.quantity" class="stock-ok">库存充足</span>
+              <span v-else class="stock-out">库存不足</span>
+            </template>
+          </el-table-column>
           <el-table-column label="小计" width="150">
             <template slot-scope="scope">
               ¥{{ (scope.row.sellingPrice * scope.row.quantity).toFixed(2) }}
@@ -288,6 +294,16 @@ export default {
           font-size: 14px;
           color: #303133;
         }
+      }
+
+      .stock-ok {
+        color: #67c23a;
+        font-weight: 500;
+      }
+
+      .stock-out {
+        color: #f56c6c;
+        font-weight: 500;
       }
     }
 
