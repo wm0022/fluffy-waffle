@@ -187,6 +187,17 @@ export default {
       method: 'get'
     })
   },
+  upload: {
+    bookCover: (file) => {
+      const formData = new FormData()
+      formData.append('file', file)
+      return service.post('/upload/bookCover', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      })
+      // 注意：响应拦截器已经解包返回 res.data（即 { url, filename, originalName }）
+      // 此处无需再 .then(res => res.data)，否则会二次解包得到 undefined
+    }
+  },
   member: {
     getInfo: () => request({
       url: `/member/info`,

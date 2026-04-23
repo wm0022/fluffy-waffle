@@ -324,6 +324,7 @@ public class InventoryController {
     public Result<Void> updateInventory(@RequestBody Inventory inventory) {
         Inventory existing = inventoryService.getById(inventory.getInventoryId());
         if (existing != null) {
+            boolean stockModified = false;
             if (inventory.getMinStock() != null) {
                 existing.setMinStock(inventory.getMinStock());
             }
@@ -334,8 +335,10 @@ public class InventoryController {
                 int diff = inventory.getStockQuantity() - existing.getStockQuantity();
                 if (diff > 0) {
                     inventoryService.increaseStock(existing.getBookId(), diff);
+                    stockModified = true;
                 } else if (diff < 0) {
                     inventoryService.decreaseStock(existing.getBookId(), Math.abs(diff));
+                    stockModified = true;
                 }
 
                 // 同步更新 book_info 表的库存
@@ -353,7 +356,11 @@ public class InventoryController {
                     System.out.println("同步book_info库存异常: " + e.getMessage());
                 }
             }
-            inventoryService.updateById(existing);
+            // 只有非库存字段的修改（minStock/maxStock）才需要手动 updateById，
+            // 库存修改已由 increaseStock/decreaseStock 内部完成持久化
+            if (!stockModified) {
+                inventoryService.updateById(existing);
+            }
         }
         return Result.success("更新成功");
     }

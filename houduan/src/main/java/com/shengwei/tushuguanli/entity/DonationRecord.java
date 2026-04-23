@@ -41,6 +41,8 @@ public class DonationRecord {
 
     private String description;
 
+    private String coverImage;
+
     private Integer status;
 
     private String reviewRemark;

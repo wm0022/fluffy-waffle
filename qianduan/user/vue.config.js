@@ -10,6 +10,13 @@ module.exports = {
         pathRewrite: {
           '^/api': '/api'
         }
+      },
+      // 静态资源（图片等）代理到后端，解决封面上传后图片无法显示的问题
+      // 后端 context-path=/api，所以需要将 /uploads 重写为 /api/uploads
+      '/uploads': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        pathRewrite: { '^/uploads': '/api/uploads' }
       }
     }
   }

@@ -344,15 +344,29 @@ export default {
       this.restockForm.quantity = row.shortage > 0 ? row.shortage : 10
       this.restockDialogVisible = true
     },
-    submitRestock() {
+    async submitRestock() {
+      if (!this.currentBook || !this.restockForm.quantity || this.restockForm.quantity <= 0) {
+        this.$message.warning('请输入有效的补货数量')
+        return
+      }
       this.restockLoading = true
-      setTimeout(() => {
-        this.restockLoading = false
-        this.restockDialogVisible = false
+      try {
+        // 补货 = 当前库存 + 补货数量 → 通过 update 接口触发 increaseStock
+        const newStock = (this.currentBook.stockQuantity || 0) + this.restockForm.quantity
+        await api.inventory.update({
+          inventoryId: this.currentBook.inventoryId,
+          stockQuantity: newStock
+        })
         this.$message.success('补货成功')
+        this.restockDialogVisible = false
         this.loadInventory()
         this.loadWarningList()
-      }, 1000)
+      } catch (error) {
+        console.error('补货失败:', error)
+        this.$message.error('补货失败，请重试')
+      } finally {
+        this.restockLoading = false
+      }
     },
     getStockClass(row) {
       if (row.stockQuantity <= 0 || row.currentStock <= 0) {

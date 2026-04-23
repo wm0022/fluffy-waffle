@@ -123,6 +123,9 @@ public class DonationServiceImpl extends ServiceImpl<DonationRecordMapper, Donat
             bookInfo.setShelfStatus(0);
             bookInfo.setIsDonation(1);
             bookInfo.setDescription(record.getDescription());
+            if (StringUtils.hasText(record.getCoverImage())) {
+                bookInfo.setCoverImage(record.getCoverImage());
+            }
             bookInfo.setCreateTime(LocalDateTime.now());
             bookInfoMapper.insert(bookInfo);
 

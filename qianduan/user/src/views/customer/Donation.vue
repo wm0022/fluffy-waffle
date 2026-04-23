@@ -32,6 +32,29 @@
                 </el-col>
               </el-row>
 
+              <!-- 图书封面上传 -->
+              <el-row>
+                <el-col :span="24">
+                  <el-form-item label="图书封面">
+                    <el-upload
+                      class="cover-uploader"
+                      action="#"
+                      :http-request="handleUploadCover"
+                      :show-file-list="false"
+                      :before-upload="beforeCoverUpload"
+                      accept=".jpg,.jpeg,.png,.gif"
+                    >
+                      <img v-if="donationForm.coverImage" :src="getImageUrl(donationForm.coverImage)" class="cover-preview" />
+                      <div v-else class="upload-placeholder">
+                        <i class="el-icon-plus"></i>
+                        <span>上传封面</span>
+                      </div>
+                    </el-upload>
+                    <div class="upload-tip">支持 JPG、PNG、GIF 格式，大小不超过 5MB</div>
+                  </el-form-item>
+                </el-col>
+              </el-row>
+
               <el-divider content-position="left">选填信息</el-divider>
               <el-row>
                 <el-col :span="12">
@@ -152,7 +175,8 @@ export default {
         binding: '',
         language: '',
         price: 0,
-        description: ''
+        description: '',
+        coverImage: ''
       },
       donationRecords: [],
       profileDialogVisible: false,
@@ -220,9 +244,40 @@ export default {
         binding: '',
         language: '',
         price: 0,
-        description: ''
+        description: '',
+        coverImage: ''
       }
       this.$refs.donationForm.resetFields()
+    },
+    // 封面上传相关方法
+    beforeCoverUpload(file) {
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif']
+      const isImage = allowedTypes.includes(file.type)
+      if (!isImage) {
+        this.$message.error('仅支持 JPG、PNG、GIF 格式的图片')
+        return false
+      }
+      const isLt5M = file.size / 1024 / 1024 < 5
+      if (!isLt5M) {
+        this.$message.error('图片大小不能超过 5MB')
+        return false
+      }
+      return true
+    },
+    async handleUploadCover({ file }) {
+      try {
+        const res = await api.upload.bookCover(file)
+        this.donationForm.coverImage = res.url || res.filename
+        this.$message.success('封面上传成功')
+      } catch (error) {
+        console.error('上传封面失败:', error)
+        this.$message.error('封面上传失败，请重试')
+      }
+    },
+    getImageUrl(url) {
+      if (!url) return ''
+      if (url.startsWith('http')) return url
+      return url
     },
     async loadRecords() {
       try {
@@ -274,6 +329,58 @@ export default {
       padding: 40px;
       text-align: center;
     }
+  }
+
+  // 封面上传组件样式
+  .cover-uploader {
+    ::v-deep .el-upload {
+      border: 1px dashed #d9d9d9;
+      border-radius: 6px;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      width: 160px;
+      height: 200px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: border-color 0.3s;
+
+      &:hover {
+        border-color: #409eff;
+      }
+    }
+
+    .cover-preview {
+      width: 160px;
+      height: 200px;
+      object-fit: cover;
+      display: block;
+    }
+
+    .upload-placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #8c939d;
+
+      i {
+        font-size: 28px;
+        margin-bottom: 8px;
+      }
+
+      span {
+        font-size: 13px;
+      }
+    }
+  }
+
+  .upload-tip {
+    font-size: 12px;
+    color: #909399;
+    margin-top: 4px;
+    line-height: 1.4;
   }
 }
 </style>
