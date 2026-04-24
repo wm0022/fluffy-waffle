@@ -25,6 +25,8 @@ public class CartItemVO {
     
     private BigDecimal sellingPrice;
     
+    private BigDecimal originalPrice;
+    
     private String coverImage;
     
     // 小计金额

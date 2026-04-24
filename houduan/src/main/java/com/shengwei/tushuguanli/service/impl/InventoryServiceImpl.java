@@ -150,7 +150,6 @@ public class InventoryServiceImpl extends ServiceImpl<InventoryMapper, Inventory
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
     public void releaseStock(Long bookId, Integer quantity) {
         Inventory inventory = getInventoryByBookId(bookId);
         if (inventory == null) {

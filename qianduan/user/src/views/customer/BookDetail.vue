@@ -23,7 +23,7 @@
             <div class="book-price">
               <span class="current-price">¥{{ book.sellingPrice }}</span>
               <span v-if="book.originalPrice && book.originalPrice > book.sellingPrice" class="original-price">¥{{ book.originalPrice }}</span>
-              <el-tag v-if="book.discount && book.discount < 1" type="danger" size="small">{{ (book.discount * 10).toFixed(1) }}折</el-tag>
+              <el-tag v-if="bookDiscountTag" type="danger" size="small">{{ bookDiscountTag }}</el-tag>
             </div>
             <div class="book-attrs">
               <div class="attr-row"><span class="attr-label">作者</span><span class="attr-value">{{ book.author || '暂无' }}</span></div>
@@ -136,6 +136,17 @@ export default {
         rating: [{ required: true, message: '请选择评分', trigger: 'change' }],
         content: [{ required: true, message: '请输入评价内容', trigger: 'blur' }]
       }
+    }
+  },
+  computed: {
+    bookDiscountTag() {
+      if (!this.book || !this.book.discount) return ''
+      const d = this.book.discount
+      // 兼容两种格式：0-1（如0.8）或 1-10（如8）
+      if (d > 1 && d <= 10) return d.toFixed(1) + '折'
+      if (d > 0 && d < 1) return (d * 10).toFixed(1) + '折'
+      // 等于1（无折扣/原价）不显示
+      return ''
     }
   },
   created() {

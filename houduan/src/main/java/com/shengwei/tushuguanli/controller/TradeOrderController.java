@@ -123,10 +123,19 @@ public class TradeOrderController {
 
     @PostMapping("/refund/handle")
     public Result<Void> handleRefund(@RequestBody Map<String, Object> params) {
-        Long refundId = Long.valueOf(params.get("refundId").toString());
-        Integer status = Integer.valueOf(params.get("status").toString());
-        String remark = params.get("remark") != null ? params.get("remark").toString() : null;
-        orderService.handleRefund(refundId, status, remark);
-        return Result.success("处理成功");
+        Object refundIdObj = params.get("refundId");
+        Object statusObj = params.get("status");
+        if (refundIdObj == null || statusObj == null) {
+            return Result.error(400, "缺少必要参数");
+        }
+        try {
+            Long refundId = Long.valueOf(refundIdObj.toString());
+            Integer status = Integer.valueOf(statusObj.toString());
+            String remark = params.get("remark") != null ? params.get("remark").toString() : null;
+            orderService.handleRefund(refundId, status, remark);
+            return Result.success("处理成功");
+        } catch (NumberFormatException e) {
+            return Result.error(400, "参数格式错误");
+        }
     }
 }

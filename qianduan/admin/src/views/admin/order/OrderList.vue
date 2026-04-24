@@ -216,13 +216,15 @@
           <p><strong>订单号：</strong>{{ currentRefund.orderNo }}</p>
           <p><strong>退款金额：</strong>¥{{ currentRefund.amount }}</p>
           <p><strong>退款原因：</strong>{{ currentRefund.reason }}</p>
-          <el-form-item label="处理备注" style="margin-top: 12px;">
-            <el-textarea
+          <div style="margin-top: 12px;">
+            <label style="display: block; margin-bottom: 8px; font-weight: bold;">处理备注</label>
+            <el-input
               v-model="handleRemark"
+              type="textarea"
               :rows="3"
               placeholder="请输入处理备注（选填）"
-            ></el-textarea>
-          </el-form-item>
+            ></el-input>
+          </div>
         </div>
         <div slot="footer" class="dialog-footer">
           <el-button @click="handleRefundVisible = false">取消</el-button>

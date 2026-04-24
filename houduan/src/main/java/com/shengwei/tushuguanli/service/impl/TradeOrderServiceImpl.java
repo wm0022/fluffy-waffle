@@ -491,19 +491,33 @@ public class TradeOrderServiceImpl extends ServiceImpl<TradeOrderMapper, TradeOr
                 order.setUpdateTime(LocalDateTime.now());
                 updateById(order);
 
-                // 释放锁定库存（退款/取消时恢复可用库存）
+                // 获取订单明细
                 List<TradeOrderItem> orderItems = orderItemMapper.selectList(
                         new LambdaQueryWrapper<TradeOrderItem>()
                                 .eq(TradeOrderItem::getOrderId, order.getId()));
+
+                // 安全释放库存：直接操作数据库，不调用可能抛异常的 service 方法
+                // 注意：支付后 confirmDeduction 已将 locked 清零并扣减 stockQuantity，
+                //       所以退款时需要同时增加 available 和 totalStock
                 for (TradeOrderItem item : orderItems) {
                     try {
-                        inventoryService.releaseStock(item.getBookId(), item.getQuantity());
+                        com.shengwei.tushuguanli.entity.Inventory inv = inventoryService.getInventoryByBookId(item.getBookId());
+                        if (inv != null) {
+                            inv.setAvailableQuantity(inv.getAvailableQuantity() + item.getQuantity());
+                            inv.setStockQuantity(inv.getStockQuantity() + item.getQuantity());
+                            inventoryService.updateById(inv);
+                            log.info("[handleRefund] 库存回增成功: bookId={}, quantity={}, 可用={}",
+                                    item.getBookId(), item.getQuantity(), inv.getAvailableQuantity());
+                        } else {
+                            log.warn("[handleRefund] 库存记录不存在，跳过释放: bookId={}, quantity={}",
+                                    item.getBookId(), item.getQuantity());
+                        }
                     } catch (Exception e) {
-                        System.out.println("释放锁定库存异常: " + e.getMessage());
+                        log.error("[handleRefund] 释放库存失败: bookId={}, error={}", item.getBookId(), e.getMessage());
                     }
                 }
 
-                // 同步更新 book_info 表：恢复库存、扣减销量
+                // 同步更新 book_info 表
                 for (TradeOrderItem item : orderItems) {
                     try {
                         com.shengwei.tushuguanli.entity.BookInfo bookInfo = bookInfoService.getById(item.getBookId());
@@ -512,13 +526,12 @@ public class TradeOrderServiceImpl extends ServiceImpl<TradeOrderMapper, TradeOr
                             if (inv != null) {
                                 bookInfo.setStockCount(inv.getStockQuantity());
                             }
-                            // 退款成功，销量回退
                             int oldSales = bookInfo.getSalesVolume() != null ? bookInfo.getSalesVolume() : 0;
                             bookInfo.setSalesVolume(Math.max(0, oldSales - item.getQuantity()));
                             bookInfoService.updateById(bookInfo);
                         }
                     } catch (Exception e) {
-                        System.out.println("退款同步book_info异常: " + e.getMessage());
+                        log.error("[handleRefund] 同步book_info失败: bookId={}, error={}", item.getBookId(), e.getMessage());
                     }
                 }
             }

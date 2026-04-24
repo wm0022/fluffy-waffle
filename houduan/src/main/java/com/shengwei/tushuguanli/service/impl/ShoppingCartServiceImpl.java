@@ -83,6 +83,7 @@ public class ShoppingCartServiceImpl extends ServiceImpl<ShoppingCartMapper, Sho
                 vo.setBookName(book.getBookName());
                 vo.setAuthor(book.getAuthor());
                 vo.setSellingPrice(book.getSellingPrice());
+                vo.setOriginalPrice(book.getOriginalPrice());
                 vo.setCoverImage(book.getCoverImage());
                 // 库存数量
                 vo.setStockCount(book.getStockCount());

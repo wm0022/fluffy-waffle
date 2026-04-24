@@ -48,13 +48,13 @@
           <span>商品金额：</span>
           <span class="amount">¥{{ totalAmount }}</span>
         </div>
+        <div class="summary-row" v-if="bookDiscountAmount > 0">
+          <span>图书优惠：</span>
+          <span class="amount discount">-¥{{ bookDiscountAmount.toFixed(2) }}</span>
+        </div>
         <div class="summary-row" v-if="memberInfo.level > 0">
           <span>会员折扣（{{ memberInfo.levelName }}）：</span>
           <span class="amount discount">-¥{{ discountAmount }}</span>
-        </div>
-        <div class="summary-row" v-if="memberInfo.level > 0">
-          <span>折扣率：</span>
-          <span class="amount discount">{{ memberInfo.discountText }}</span>
         </div>
         <div class="summary-row total">
           <span>应付金额：</span>
@@ -126,6 +126,20 @@ export default {
       }, 0)
       return sum.toFixed(2)
     },
+    // 图书优惠金额（原价 - 售价）
+    bookDiscountAmount() {
+      const items = this.displayItems
+      let saving = 0
+      items.forEach(item => {
+        const origPrice = item.originalPrice || 0
+        const sellPrice = item.sellingPrice || 0
+        const qty = item.quantity || 1
+        if (origPrice > sellPrice && qty > 0) {
+          saving += (origPrice - sellPrice) * qty
+        }
+      })
+      return saving
+    },
     payAmount() {
       const total = parseFloat(this.totalAmount)
       const discount = this.memberInfo.discount || 1.0
@@ -180,7 +194,9 @@ export default {
           bookId: book.id,
           bookName: book.bookName,
           sellingPrice: book.sellingPrice,
+          originalPrice: book.originalPrice || book.sellingPrice,
           coverImage: book.coverImage,
+          stockCount: book.stockCount || 999,
           quantity: 1,
           subtotal: book.sellingPrice
         }
