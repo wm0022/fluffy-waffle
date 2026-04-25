@@ -17,11 +17,13 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column label="操作" width="240" fixed="right" align="center">
           <template slot-scope="scope">
-            <el-button type="primary" size="mini" @click="openDialog(scope.row)">编辑</el-button>
-            <el-button type="warning" size="mini" @click="openPermDialog(scope.row)">分配权限</el-button>
-            <el-button type="danger" size="mini" @click="handleDelete(scope.row)">删除</el-button>
+            <div class="action-btn-group">
+              <el-button type="primary" size="mini" icon="el-icon-edit" @click="openDialog(scope.row)">编辑</el-button>
+              <el-button type="warning" size="mini" icon="el-icon-lock" @click="openPermDialog(scope.row)">权限</el-button>
+              <el-button type="danger" size="mini" icon="el-icon-delete" @click="handleDelete(scope.row)">删除</el-button>
+            </div>
           </template>
         </el-table-column>
       </el-table>
@@ -182,3 +184,31 @@ export default {
   }
 }
 </script>
+
+<style scoped>
+.role-manage {
+  padding: 20px;
+}
+
+/* 表格单元格全局居中 */
+.role-manage >>> .el-table .cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.action-btn-group {
+  display: inline-flex !important;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  width: 100%;
+  overflow: visible;
+}
+
+.action-btn-group .el-button {
+  margin-left: 0 !important;
+  flex-shrink: 0;
+}
+</style>

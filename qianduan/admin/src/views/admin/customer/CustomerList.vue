@@ -51,19 +51,14 @@
             ¥{{ scope.row.totalAmount || '0.00' }}
           </template>
         </el-table-column>
-        <el-table-column label="状态" width="70">
-          <template slot-scope="scope">
-            <el-tag :type="scope.row.status === 1 ? 'success' : 'danger'" size="small">
-              {{ scope.row.status === 1 ? '正常' : '禁用' }}
-            </el-tag>
-          </template>
-        </el-table-column>
         <el-table-column prop="createTime" label="注册时间" width="170" />
-        <el-table-column label="操作" fixed="right" width="180">
+        <el-table-column label="操作" fixed="right" width="200" align="center">
           <template slot-scope="scope">
-            <el-button size="mini" type="primary" @click="handleView(scope.row)">详情</el-button>
-            <el-button size="mini" type="warning" @click="handleEdit(scope.row)">编辑</el-button>
-            <el-button size="mini" type="danger" @click="handleDelete(scope.row)">删除</el-button>
+            <div class="action-btn-group">
+              <el-button size="mini" type="primary" @click="handleView(scope.row)">详情</el-button>
+              <el-button size="mini" type="warning" @click="handleEdit(scope.row)">编辑</el-button>
+              <el-button size="mini" type="danger" @click="handleDelete(scope.row)">删除</el-button>
+            </div>
           </template>
         </el-table-column>
       </el-table>
@@ -104,11 +99,6 @@
         </el-descriptions-item>
         <el-descriptions-item label="积分">{{ viewData.points || 0 }}</el-descriptions-item>
         <el-descriptions-item label="累计消费">¥{{ viewData.totalAmount || '0.00' }}</el-descriptions-item>
-        <el-descriptions-item label="状态">
-          <el-tag :type="viewData.status === 1 ? 'success' : 'danger'" size="small">
-            {{ viewData.status === 1 ? '正常' : '禁用' }}
-          </el-tag>
-        </el-descriptions-item>
         <el-descriptions-item label="注册时间" :span="2">{{ viewData.createTime }}</el-descriptions-item>
       </el-descriptions>
       <div slot="footer">
@@ -183,7 +173,7 @@
           </el-col>
         </el-row>
         <el-row :gutter="20">
-          <el-col :span="12">
+          <el-col :span="24">
             <el-form-item label="学历">
               <el-select v-model="customerForm.education" placeholder="请选择" style="width: 100%;" clearable>
                 <el-option label="小学" value="小学" />
@@ -193,14 +183,6 @@
                 <el-option label="本科" value="本科" />
                 <el-option label="硕士" value="硕士" />
                 <el-option label="博士" value="博士" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="状态">
-              <el-select v-model="customerForm.status" style="width: 100%;">
-                <el-option label="正常" :value="1" />
-                <el-option label="禁用" :value="0" />
               </el-select>
             </el-form-item>
           </el-col>
@@ -297,7 +279,6 @@ export default {
         email: '',
         address: '',
         preferences: '',
-        status: 1,
         memberLevel: 0,
         points: 0,
         totalAmount: '0.00'
@@ -417,5 +398,27 @@ export default {
 <style scoped>
 .customer-list {
   padding: 20px;
+}
+
+/* 操作列单元格垂直居中 */
+.customer-list >>> .el-table .cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.action-btn-group {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  width: 100%;
+}
+
+.action-btn-group .el-button {
+  margin-left: 0 !important;
+  min-width: 56px;
+  flex-shrink: 0;
 }
 </style>
