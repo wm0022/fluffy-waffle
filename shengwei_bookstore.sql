@@ -31,7 +31,6 @@ CREATE TABLE `book_info`  (
   `edition` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '版次',
   `print_date` date NULL DEFAULT NULL COMMENT '印刷日期',
   `isbn` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT 'ISBN',
-  `category_id` bigint NULL DEFAULT NULL COMMENT '分类ID',
   `original_price` decimal(10, 2) NULL DEFAULT NULL COMMENT '定价',
   `selling_price` decimal(10, 2) NULL DEFAULT NULL COMMENT '售价',
   `discount` decimal(3, 2) NULL DEFAULT NULL COMMENT '优惠',
@@ -46,7 +45,6 @@ CREATE TABLE `book_info`  (
   `is_donation` int NULL DEFAULT 0 COMMENT '是否捐赠图书 0否1是',
   `create_time` datetime NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   PRIMARY KEY (`id`) USING BTREE,
-  INDEX `idx_category`(`category_id` ASC) USING BTREE,
   INDEX `idx_status`(`shelf_status` ASC) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 41 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '图书信息表' ROW_FORMAT = DYNAMIC;
 
