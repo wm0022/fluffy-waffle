@@ -31,6 +31,15 @@ public class JwtAuthInterceptor implements HandlerInterceptor {
             return true;
         }
 
+        // 公开接口：GET /book/{id} 图书详情 - 允许未登录用户查看
+        String method = request.getMethod();
+        String uri = request.getRequestURI();
+        String contextPath = request.getContextPath();
+        String path = uri.substring(contextPath.length()); // 去掉 context-path (/api)
+        if ("GET".equalsIgnoreCase(method) && isBookDetailPath(path)) {
+            return true; // 放行，不校验 Token
+        }
+
         String token = resolveToken(request);
 
         if (token == null || !jwtUtil.validateToken(token)) {
@@ -45,6 +54,14 @@ public class JwtAuthInterceptor implements HandlerInterceptor {
         request.setAttribute("currentUsername", username);
 
         return true;
+    }
+
+    /**
+     * 判断是否为图书详情公开接口（GET /book/{id}）
+     * 匹配 /book/{数字ID} 格式，排除 /book/page、/book/hot 等已有白名单的路径
+     */
+    private boolean isBookDetailPath(String path) {
+        return path.matches("^/book/\\d+$");
     }
 
     /**
