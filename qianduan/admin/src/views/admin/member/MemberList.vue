@@ -17,23 +17,6 @@
         </el-table-column>
         <el-table-column prop="email" label="邮箱" width="180" />
         <el-table-column prop="phone" label="手机号" width="130" />
-        <el-table-column label="会员等级" width="110">
-          <template slot-scope="scope">
-            <el-tag :type="getLevelTagType(scope.row.memberLevel)" size="small">
-              {{ getLevelName(scope.row.memberLevel) }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="积分" width="80">
-          <template slot-scope="scope">
-            {{ scope.row.points || 0 }}
-          </template>
-        </el-table-column>
-        <el-table-column label="累计消费" width="110">
-          <template slot-scope="scope">
-            ¥{{ scope.row.totalAmount || '0.00' }}
-          </template>
-        </el-table-column>
         <el-table-column prop="createTime" label="注册时间" width="170" />
         <el-table-column label="操作" fixed="right" width="150">
           <template slot-scope="scope">
@@ -71,17 +54,6 @@
         </el-form-item>
         <el-form-item label="手机号" prop="phone">
           <el-input v-model="userForm.phone" placeholder="请输入手机号" />
-        </el-form-item>
-        <el-form-item v-if="!isCreate" label="会员等级">
-          <el-tag :type="getLevelTagType(userForm.memberLevel)">
-            {{ getLevelName(userForm.memberLevel) }}
-          </el-tag>
-        </el-form-item>
-        <el-form-item v-if="!isCreate" label="积分">
-          <span>{{ userForm.points || 0 }}</span>
-        </el-form-item>
-        <el-form-item v-if="!isCreate" label="累计消费">
-          <span>¥{{ userForm.totalAmount || '0.00' }}</span>
         </el-form-item>
       </el-form>
       <div slot="footer">

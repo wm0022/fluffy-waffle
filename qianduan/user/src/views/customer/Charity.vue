@@ -79,22 +79,20 @@ export default {
       this.$router.push(`/customer/book/${id}`)
     },
     async addToCart(book) {
-      const user = this.$store.getters.user
-      if (!user) {
+      if (!this.$store.state.token) {
         this.$message.warning('请先登录')
         this.$router.push('/login')
         return
       }
       try {
-        await api.cart.add(user.id, book.id, 1)
+        await api.cart.add(this.$store.state.userInfo.id, book.id, 1)
         this.$message.success('已加入购物车')
       } catch (e) {
         this.$message.error('加入购物车失败')
       }
     },
     buyNow(book) {
-      const user = this.$store.getters.user
-      if (!user) {
+      if (!this.$store.state.token) {
         this.$message.warning('请先登录')
         this.$router.push('/login')
         return

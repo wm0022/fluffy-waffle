@@ -3,7 +3,7 @@
     <el-container>
       <el-aside :width="sidebarOpened ? '200px' : '64px'" class="sidebar">
         <div class="logo">
-          <span v-if="sidebarOpened" class="logo-text">圣惟书店</span>
+          <span v-if="sidebarOpened" class="logo-text">圣惟书店管理系统</span>
           <span v-else>书</span>
         </div>
         <el-menu

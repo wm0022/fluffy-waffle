@@ -3,7 +3,7 @@
     <el-header class="site-header">
       <div class="header-content">
         <div class="logo" @click="$router.push('/customer/home')">
-          📚 圣惟书店
+          📚 圣惟书店管理系统
         </div>
         <div class="search-bar">
       <el-input
@@ -200,8 +200,8 @@ export default {
 }
 
 .main-content {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 20px;
+  max-width: 100%;
+  padding: 0;
+  background-color: #f8f6f3;
 }
 </style>
