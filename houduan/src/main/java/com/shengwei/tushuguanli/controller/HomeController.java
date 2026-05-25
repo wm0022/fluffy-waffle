@@ -98,15 +98,18 @@ public class HomeController {
 
     /**
      * 获取指定时间段的销售统计
+     * 状态说明: 0=待支付, 1=待发货, 2=配送中, 3=已完成, 4=已取消
+     * 已支付订单 = status >= 1 且 status != 4
      */
     private Map<String, Object> getSalesByPeriod(LocalDateTime startTime, LocalDateTime endTime) {
         Map<String, Object> stats = new HashMap<>();
 
-        // 查询已支付订单 (status = 1 表示已支付)
+        // 查询已支付订单 (status >= 1 表示已支付，排除已取消)
         LambdaQueryWrapper<TradeOrder> orderWrapper = new LambdaQueryWrapper<>();
         orderWrapper.ge(TradeOrder::getCreateTime, startTime)
                 .le(TradeOrder::getCreateTime, endTime)
-                .eq(TradeOrder::getStatus, 1);
+                .ge(TradeOrder::getStatus, 1)    // 已支付（含待发货/配送中/已完成）
+                .ne(TradeOrder::getStatus, 4);   // 排除已取消
         List<TradeOrder> orders = orderMapper.selectList(orderWrapper);
 
         int orderCount = orders.size();
@@ -136,11 +139,12 @@ public class HomeController {
      * 获取热销图书排行
      */
     private List<Map<String, Object>> getTopSellingBooks(int limit) {
-        // 查询近30天已支付订单
+        // 查询近30天已支付订单 (status >= 1 且 != 4)
         LocalDateTime startTime = LocalDate.now().minusDays(30).atStartOfDay();
         LambdaQueryWrapper<TradeOrder> orderWrapper = new LambdaQueryWrapper<>();
         orderWrapper.ge(TradeOrder::getCreateTime, startTime)
-                .eq(TradeOrder::getStatus, 1);
+                .ge(TradeOrder::getStatus, 1)
+                .ne(TradeOrder::getStatus, 4);
         List<TradeOrder> orders = orderMapper.selectList(orderWrapper);
 
         // 统计每本书的销量和销售额
@@ -197,11 +201,12 @@ public class HomeController {
             LocalDateTime dayStart = date.atStartOfDay();
             LocalDateTime dayEnd = date.plusDays(1).atStartOfDay();
 
-            // 查询当天已支付订单
+            // 查询当天已支付订单 (status >= 1 且 != 4)
             LambdaQueryWrapper<TradeOrder> orderWrapper = new LambdaQueryWrapper<>();
             orderWrapper.ge(TradeOrder::getCreateTime, dayStart)
                     .lt(TradeOrder::getCreateTime, dayEnd)
-                    .eq(TradeOrder::getStatus, 1);
+                    .ge(TradeOrder::getStatus, 1)
+                    .ne(TradeOrder::getStatus, 4);
             List<TradeOrder> orders = orderMapper.selectList(orderWrapper);
 
             int daySales = 0;

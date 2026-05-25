@@ -3,7 +3,7 @@
     <div class="login-box">
       <div class="login-header">
         <div class="logo">📚</div>
-        <h1>圣惟书店</h1>
+        <h1>圣惟书店管理系统</h1>
         <p class="subtitle">让阅读点亮生活</p>
       </div>
       <el-form
